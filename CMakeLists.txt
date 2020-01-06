@@ -1,14 +1,15 @@
 cmake_minimum_required(VERSION 3.15)
-project(OpenCLProject C)
+project(CLPathTracer C)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_EXTENSIONS OFF)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Wextra -Wformat -Wno-unused-parameter")
 
 find_package(OpenCL REQUIRED)
-include_directories(${OpenCL_INCLUDE_DIR} include)
+find_package(glfw3 3.3 REQUIRED)
+include_directories(${OpenCL_INCLUDE_DIR} ${glfw_INCLUDE_DIR} include)
 
 file(GLOB SRC "src/*.c")
 
-add_executable(OpenCLProject ${SRC})
-target_link_libraries(OpenCLProject ${OpenCL_LIBRARY})
+add_executable(CLPathTracer ${SRC})
+target_link_libraries(CLPathTracer glfw ${OpenCL_LIBRARY})

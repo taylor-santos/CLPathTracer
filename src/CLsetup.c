@@ -7,21 +7,40 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct buf {
+    cl_mem buffer;
+    size_t size;
+} buf;
+
+struct CLData {
+    cl_platform_id platform;
+    cl_device_id device;
+    cl_context context;
+    cl_program program;
+    cl_command_queue queue;
+    cl_kernel kernel;
+    int num_buffers;
+    buf *buffers;
+    int num_args;
+};
+
 static cl_platform_id
-query_platform(const cl_platform_id *platforms,
-               cl_uint num_platforms) {
-    printf("There %s %d platform%s available:\n",
-            num_platforms == 1 ? "is" : "are",
-            num_platforms,
-            num_platforms == 1 ? "" : "s");
+query_platform(const cl_platform_id *platforms, cl_uint num_platforms) {
+    printf("There %s %d platform%s available:\n", num_platforms == 1
+                                                  ? "is"
+                                                  : "are", num_platforms,
+        num_platforms == 1
+        ? ""
+        : "s");
     for (unsigned int i = 0; i < num_platforms; i++) {
         size_t name_len;
         HANDLE_ERR(clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, 0, NULL,
-                                     &name_len));
+            &name_len));
         char name[name_len];
-        HANDLE_ERR(clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, name_len,
-                                     name, NULL));
-        printf("\t%d) %s\n", i+1, name);
+        HANDLE_ERR(
+            clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, name_len, name,
+                NULL));
+        printf("\t%d) %s\n", i + 1, name);
     }
     if (num_platforms == 1) {
         return platforms[0];
@@ -33,10 +52,11 @@ query_platform(const cl_platform_id *platforms,
         char buf[64];
         fgets(buf, 64, stdin);
         index = strtol(buf, NULL, 10);
-        if (index < 1 ||  index > (long)num_platforms)
+        if (index < 1 || index > (long)num_platforms) {
             printf("Invalid input. ");
+        }
     } while (index < 1 || index > (long)num_platforms);
-    return platforms[index-1];
+    return platforms[index - 1];
 }
 
 static cl_platform_id
@@ -49,20 +69,21 @@ get_platform(void) {
 }
 
 static cl_device_id
-query_device(const cl_device_id *devices,
-             cl_uint num_devices) {
-    printf("There %s %d device%s available:\n",
-            num_devices == 1 ? "is" : "are",
-            num_devices,
-            num_devices == 1 ? "" : "s");
+query_device(const cl_device_id *devices, cl_uint num_devices) {
+    printf("There %s %d device%s available:\n", num_devices == 1
+                                                ? "is"
+                                                : "are", num_devices,
+        num_devices == 1
+        ? ""
+        : "s");
     for (unsigned int i = 0; i < num_devices; i++) {
         size_t name_len;
-        HANDLE_ERR(clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 0, NULL,
-                                     &name_len));
+        HANDLE_ERR(
+            clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 0, NULL, &name_len));
         char name[name_len];
-        HANDLE_ERR(clGetDeviceInfo(devices[i], CL_DEVICE_NAME, name_len,
-                                     name, NULL));
-        printf("\t%d) %s\n", i+1, name);
+        HANDLE_ERR(
+            clGetDeviceInfo(devices[i], CL_DEVICE_NAME, name_len, name, NULL));
+        printf("\t%d) %s\n", i + 1, name);
     }
     if (num_devices == 1) {
         return devices[0];
@@ -74,20 +95,22 @@ query_device(const cl_device_id *devices,
         char buf[64];
         fgets(buf, 64, stdin);
         index = strtol(buf, NULL, 10);
-        if (index < 1 ||  index > (long)num_devices)
+        if (index < 1 || index > (long)num_devices) {
             printf("Invalid input. ");
+        }
     } while (index < 1 || index > (long)num_devices);
-    return devices[index-1];
+    return devices[index - 1];
 }
 
 static cl_device_id
 get_device(cl_platform_id platform) {
     cl_uint num_devices;
-    HANDLE_ERR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL,
-            &num_devices));
+    HANDLE_ERR(
+        clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices));
     cl_device_id devices[num_devices];
-    HANDLE_ERR(clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices,
-            devices, NULL));
+    HANDLE_ERR(
+        clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices, devices,
+            NULL));
     return query_device(devices, num_devices);
 }
 
@@ -95,12 +118,13 @@ static size_t
 get_max_work_group(cl_device_id device) {
     size_t size;
 
-    HANDLE_ERR(clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE,
-            sizeof(size_t), &size, NULL));
+    HANDLE_ERR(
+        clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t),
+            &size, NULL));
     return size;
 }
 
-static FILE*
+static FILE *
 open_file(const char *filename) {
     FILE *file = fopen(filename, "rb");
     if (file == NULL) {
@@ -144,8 +168,7 @@ file_length(FILE *file) {
 static void
 read_file(char *buffer, size_t file_len, FILE *file) {
     buffer[file_len] = '\0';
-    if (fread(buffer, 1, file_len, file) != file_len &&
-        ferror(file) != 0) {
+    if (fread(buffer, 1, file_len, file) != file_len && ferror(file) != 0) {
         fprintf(stderr, "error reading from file\n");
         exit(EXIT_FAILURE);
     }
@@ -178,17 +201,18 @@ build_program(cl_context context, cl_device_id device, const char *filename) {
     }
     read_file(src, length, file);
     close_file(file);
-    program = clCreateProgramWithSource(context, 1, (const char**)&src,
-            &length, &err);
+    program = clCreateProgramWithSource(context, 1, (const char **)&src,
+        &length, &err);
     HANDLE_ERR(err);
     free(src);
     err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (err < 0) {
-        HANDLE_ERR(clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG,
-                0, NULL, &length));
+        HANDLE_ERR(
+            clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0,
+                NULL, &length));
         char log[length];
         HANDLE_ERR(clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG,
-                length, log, NULL));
+            length, log, NULL));
         printf("%s\n", log);
         exit(EXIT_FAILURE);
     }
@@ -216,7 +240,8 @@ create_kernel(cl_program program, const char *kernel_name) {
 }
 
 static cl_mem
-create_buffer(cl_context context, cl_mem_flags flags, void *data, size_t size) {
+create_buffer(cl_context context, cl_mem_flags flags, size_t size,
+    void *data) {
     cl_mem buffer;
     cl_int err;
 
@@ -226,7 +251,7 @@ create_buffer(cl_context context, cl_mem_flags flags, void *data, size_t size) {
 }
 
 static void
-set_arg(cl_kernel kernel, int index, cl_mem *value_ptr, size_t size) {
+set_arg(cl_kernel kernel, int index, size_t size, cl_mem *value_ptr) {
     cl_int err;
 
     err = clSetKernelArg(kernel, index, size, value_ptr);
@@ -235,79 +260,108 @@ set_arg(cl_kernel kernel, int index, cl_mem *value_ptr, size_t size) {
 
 static void
 enqueue_kernel(cl_command_queue queue, cl_kernel kernel, size_t global_size,
-        size_t local_size) {
+    size_t local_size) {
     cl_int err;
 
     err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size,
-            &local_size, 0, NULL, NULL);
+        &local_size, 0, NULL, NULL);
     HANDLE_ERR(err);
 }
 
-static void*
-enqueue_output(cl_command_queue queue, cl_mem output_buffer, size_t size) {
-    void *output;
+static void *
+enqueue_output(cl_command_queue queue, size_t size, cl_mem output_buffer,
+    void *output) {
     cl_int err;
 
-    output = malloc(size);
-    if (output == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
     err = clEnqueueReadBuffer(queue, output_buffer, CL_TRUE, 0, size, output,
-            0, NULL, NULL);
+        0, NULL, NULL);
     HANDLE_ERR(err);
     return output;
 }
 
-void**
-CLsetup(const char *filename, const char *kernel_name, size_t global_size,
-        size_t local_size, arg_struct *args) {
-    cl_platform_id platform;
-    cl_device_id device;
-    cl_context context;
-    cl_program program;
-    cl_command_queue queue;
-    cl_kernel kernel;
-    cl_mem in_bufs[args->num_inputs], out_bufs[args->num_outputs];
-    void **outputs;
-    size_t max_size;
+static int
+add_buffer_CLState(CLState *this, cl_mem_flags flags, size_t size,
+    void *data) {
+    buf *new_buffers;
+    int buf_index;
 
-    platform   = get_platform();
-    device     = get_device(platform);
-    max_size   = get_max_work_group(device);
-    local_size = CLAMP(local_size, 1, max_size);
-    context    = create_context(device);
-    program    = build_program(context, device, filename);
-    queue      = create_queue(context, device);
-    kernel     = create_kernel(program, kernel_name);
-    for (int i = 0; i < args->num_inputs; i++) {
-        in_bufs[i] = create_buffer(context,
-                CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, args->inputs[i],
-                args->input_lengths[i]);
+    buf_index = this->data->num_buffers++;
+    new_buffers = realloc(this->data->buffers,
+        this->data->num_buffers * sizeof(*this->data->buffers));
+    if (new_buffers == NULL) {
+        perror("realloc");
+        exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < args->num_outputs; i++) {
-        out_bufs[i] = create_buffer(context, CL_MEM_WRITE_ONLY, NULL,
-                args->output_lengths[i]);
+    this->data->buffers = new_buffers;
+    this->data->buffers[buf_index] = (buf){
+        create_buffer(this->data->context, flags, size, data),
+        size
+    };
+    return buf_index;
+}
+
+static void
+write_buffer_CLState(CLState *this, int index, const void *data) {
+    HANDLE_ERR(clEnqueueWriteBuffer(this->data->queue,
+        this->data->buffers[index].buffer, CL_TRUE, 0,
+        this->data->buffers[index].size, data, 0, NULL, NULL));
+}
+
+static void
+set_arg_CLState(CLState *this, int arg_index, size_t size, int buffer_index) {
+    if (buffer_index < 0) {
+        set_arg(this->data->kernel, arg_index, size, NULL);
+    } else {
+        set_arg(this->data->kernel, arg_index, size,
+            &this->data->buffers[buffer_index].buffer);
     }
-    int arg_index = 0;
-    for (int i = 0; i < args->num_inputs; i++) {
-        set_arg(kernel, arg_index++, &in_bufs[i], sizeof(in_bufs[i]));
-    }
-    for (int i = 0; i < args->num_empty; i++) {
-        set_arg(kernel, arg_index++, NULL, args->empty_lengths[i]);
-    }
-    for (int i = 0; i < args->num_outputs; i++) {
-        set_arg(kernel, arg_index++, &out_bufs[i], sizeof(out_bufs[i]));
-    }
-    enqueue_kernel(queue, kernel, global_size, local_size);
-    outputs = malloc(sizeof(*outputs) * args->num_outputs);
-    if (outputs == NULL) {
+}
+
+static void
+execute_CLState(CLState *this, int global_size, int local_size) {
+    local_size = CLAMP(local_size, 1,
+        (int)get_max_work_group(this->data->device));
+    enqueue_kernel(this->data->queue, this->data->kernel, global_size,
+        local_size);
+}
+
+static void *
+get_output_CLState(CLState *this, int buffer_index, void *output) {
+    return enqueue_output(this->data->queue,
+        this->data->buffers[buffer_index].size,
+        this->data->buffers[buffer_index].buffer, output);
+}
+
+static void
+terminate_CLState(CLState *this) {
+    free(this->data);
+}
+
+CLState
+CLsetup(const char *filename, const char *kernel_name) {
+    CLData *data;
+
+    data = malloc(sizeof(*data));
+    if (data == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
-    for (int i = 0; i < args->num_outputs; i++) {
-        outputs[i] = enqueue_output(queue, out_bufs[i],
-                args->output_lengths[i]);
-    }
-    return outputs;
+    data->platform = get_platform();
+    data->device = get_device(data->platform);
+    data->context = create_context(data->device);
+    data->program = build_program(data->context, data->device, filename);
+    data->queue = create_queue(data->context, data->device);
+    data->kernel = create_kernel(data->program, kernel_name);
+    data->num_buffers = 0;
+    data->buffers = NULL;
+    data->num_args = 0;
+    return (CLState){
+        data,
+        add_buffer_CLState,
+        write_buffer_CLState,
+        set_arg_CLState,
+        execute_CLState,
+        get_output_CLState,
+        terminate_CLState
+    };
 }
