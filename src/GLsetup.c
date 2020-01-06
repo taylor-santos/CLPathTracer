@@ -1,6 +1,8 @@
 #define WINDOW_NAME "OpenCL Path Tracer"
+#define VSYNC 0
 
 #include "GLsetup.h"
+#include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,9 +30,11 @@ get_monitor(void) {
     int monitor_count;
 
     monitors = glfwGetMonitors(&monitor_count);
-    printf("There %s %d monitor%s available:\n", monitor_count == 1
-                                                 ? "is"
-                                                 : "are", monitor_count,
+    printf("There %s %d monitor%s available:\n",
+        monitor_count == 1
+        ? "is"
+        : "are",
+        monitor_count,
         monitor_count == 1
         ? ""
         : "s");
@@ -71,9 +75,34 @@ create_window(GLFWmonitor *monitor) {
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-    window = glfwCreateWindow(mode->width, mode->height, WINDOW_NAME, monitor,
+    window = glfwCreateWindow(mode->width,
+        mode->height,
+        WINDOW_NAME,
+        monitor,
         NULL);
     return window;
+}
+
+static void
+init_gl3w(void) {
+    if (gl3wInit()) {
+        fprintf(stderr, "OpenGL failed to initialize\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void
+render(GLState *this) {
+    GLFWwindow *window = this->data->window;
+    int frame = 0;
+    double time = glfwGetTime();
+    while (!glfwWindowShouldClose(window)) {
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+        frame++;
+    }
+    time = glfwGetTime() - time;
+    printf("%f fps\n", frame / time);
 }
 
 static void
@@ -93,6 +122,13 @@ GLsetup(void) {
     monitor = get_monitor();
     window = create_window(monitor);
     glfwMakeContextCurrent(window);
+    init_gl3w();
+
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    glViewport(0, 0, width, height);
+    glfwSwapInterval(VSYNC);
+
     data = malloc(sizeof(*data));
     if (data == NULL) {
         perror("malloc");
@@ -104,6 +140,7 @@ GLsetup(void) {
 
     return (GLState){
         data,
+        render,
         delete_GLState
     };
 }

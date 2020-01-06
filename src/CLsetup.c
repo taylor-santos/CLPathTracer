@@ -26,20 +26,27 @@ struct CLData {
 
 static cl_platform_id
 query_platform(const cl_platform_id *platforms, cl_uint num_platforms) {
-    printf("There %s %d platform%s available:\n", num_platforms == 1
-                                                  ? "is"
-                                                  : "are", num_platforms,
+    printf("There %s %d platform%s available:\n",
+        num_platforms == 1
+        ? "is"
+        : "are",
+        num_platforms,
         num_platforms == 1
         ? ""
         : "s");
     for (unsigned int i = 0; i < num_platforms; i++) {
         size_t name_len;
-        HANDLE_ERR(clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, 0, NULL,
+        HANDLE_ERR(clGetPlatformInfo(platforms[i],
+            CL_PLATFORM_NAME,
+            0,
+            NULL,
             &name_len));
         char name[name_len];
-        HANDLE_ERR(
-            clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, name_len, name,
-                NULL));
+        HANDLE_ERR(clGetPlatformInfo(platforms[i],
+            CL_PLATFORM_NAME,
+            name_len,
+            name,
+            NULL));
         printf("\t%d) %s\n", i + 1, name);
     }
     if (num_platforms == 1) {
@@ -70,19 +77,27 @@ get_platform(void) {
 
 static cl_device_id
 query_device(const cl_device_id *devices, cl_uint num_devices) {
-    printf("There %s %d device%s available:\n", num_devices == 1
-                                                ? "is"
-                                                : "are", num_devices,
+    printf("There %s %d device%s available:\n",
+        num_devices == 1
+        ? "is"
+        : "are",
+        num_devices,
         num_devices == 1
         ? ""
         : "s");
     for (unsigned int i = 0; i < num_devices; i++) {
         size_t name_len;
-        HANDLE_ERR(
-            clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 0, NULL, &name_len));
+        HANDLE_ERR(clGetDeviceInfo(devices[i],
+            CL_DEVICE_NAME,
+            0,
+            NULL,
+            &name_len));
         char name[name_len];
-        HANDLE_ERR(
-            clGetDeviceInfo(devices[i], CL_DEVICE_NAME, name_len, name, NULL));
+        HANDLE_ERR(clGetDeviceInfo(devices[i],
+            CL_DEVICE_NAME,
+            name_len,
+            name,
+            NULL));
         printf("\t%d) %s\n", i + 1, name);
     }
     if (num_devices == 1) {
@@ -105,12 +120,17 @@ query_device(const cl_device_id *devices, cl_uint num_devices) {
 static cl_device_id
 get_device(cl_platform_id platform) {
     cl_uint num_devices;
-    HANDLE_ERR(
-        clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices));
+    HANDLE_ERR(clGetDeviceIDs(platform,
+        CL_DEVICE_TYPE_ALL,
+        0,
+        NULL,
+        &num_devices));
     cl_device_id devices[num_devices];
-    HANDLE_ERR(
-        clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices, devices,
-            NULL));
+    HANDLE_ERR(clGetDeviceIDs(platform,
+        CL_DEVICE_TYPE_ALL,
+        num_devices,
+        devices,
+        NULL));
     return query_device(devices, num_devices);
 }
 
@@ -118,9 +138,11 @@ static size_t
 get_max_work_group(cl_device_id device) {
     size_t size;
 
-    HANDLE_ERR(
-        clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t),
-            &size, NULL));
+    HANDLE_ERR(clGetDeviceInfo(device,
+        CL_DEVICE_MAX_WORK_GROUP_SIZE,
+        sizeof(size_t),
+        &size,
+        NULL));
     return size;
 }
 
@@ -201,18 +223,28 @@ build_program(cl_context context, cl_device_id device, const char *filename) {
     }
     read_file(src, length, file);
     close_file(file);
-    program = clCreateProgramWithSource(context, 1, (const char **)&src,
-        &length, &err);
+    program = clCreateProgramWithSource(context,
+        1,
+        (const char **)&src,
+        &length,
+        &err);
     HANDLE_ERR(err);
     free(src);
     err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (err < 0) {
-        HANDLE_ERR(
-            clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0,
-                NULL, &length));
+        HANDLE_ERR(clGetProgramBuildInfo(program,
+            device,
+            CL_PROGRAM_BUILD_LOG,
+            0,
+            NULL,
+            &length));
         char log[length];
-        HANDLE_ERR(clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG,
-            length, log, NULL));
+        HANDLE_ERR(clGetProgramBuildInfo(program,
+            device,
+            CL_PROGRAM_BUILD_LOG,
+            length,
+            log,
+            NULL));
         printf("%s\n", log);
         exit(EXIT_FAILURE);
     }
@@ -263,8 +295,15 @@ enqueue_kernel(cl_command_queue queue, cl_kernel kernel, size_t global_size,
     size_t local_size) {
     cl_int err;
 
-    err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size,
-        &local_size, 0, NULL, NULL);
+    err = clEnqueueNDRangeKernel(queue,
+        kernel,
+        1,
+        NULL,
+        &global_size,
+        &local_size,
+        0,
+        NULL,
+        NULL);
     HANDLE_ERR(err);
 }
 
@@ -273,8 +312,15 @@ enqueue_output(cl_command_queue queue, size_t size, cl_mem output_buffer,
     void *output) {
     cl_int err;
 
-    err = clEnqueueReadBuffer(queue, output_buffer, CL_TRUE, 0, size, output,
-        0, NULL, NULL);
+    err = clEnqueueReadBuffer(queue,
+        output_buffer,
+        CL_TRUE,
+        0,
+        size,
+        output,
+        0,
+        NULL,
+        NULL);
     HANDLE_ERR(err);
     return output;
 }
@@ -303,8 +349,14 @@ add_buffer_CLState(CLState *this, cl_mem_flags flags, size_t size,
 static void
 write_buffer_CLState(CLState *this, int index, const void *data) {
     HANDLE_ERR(clEnqueueWriteBuffer(this->data->queue,
-        this->data->buffers[index].buffer, CL_TRUE, 0,
-        this->data->buffers[index].size, data, 0, NULL, NULL));
+        this->data->buffers[index].buffer,
+        CL_TRUE,
+        0,
+        this->data->buffers[index].size,
+        data,
+        0,
+        NULL,
+        NULL));
 }
 
 static void
@@ -312,16 +364,21 @@ set_arg_CLState(CLState *this, int arg_index, size_t size, int buffer_index) {
     if (buffer_index < 0) {
         set_arg(this->data->kernel, arg_index, size, NULL);
     } else {
-        set_arg(this->data->kernel, arg_index, size,
+        set_arg(this->data->kernel,
+            arg_index,
+            size,
             &this->data->buffers[buffer_index].buffer);
     }
 }
 
 static void
 execute_CLState(CLState *this, int global_size, int local_size) {
-    local_size = CLAMP(local_size, 1,
+    local_size = CLAMP(local_size,
+        1,
         (int)get_max_work_group(this->data->device));
-    enqueue_kernel(this->data->queue, this->data->kernel, global_size,
+    enqueue_kernel(this->data->queue,
+        this->data->kernel,
+        global_size,
         local_size);
 }
 
@@ -329,7 +386,8 @@ static void *
 get_output_CLState(CLState *this, int buffer_index, void *output) {
     return enqueue_output(this->data->queue,
         this->data->buffers[buffer_index].size,
-        this->data->buffers[buffer_index].buffer, output);
+        this->data->buffers[buffer_index].buffer,
+        output);
 }
 
 static void

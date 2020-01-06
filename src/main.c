@@ -22,11 +22,15 @@ main(int argc, char **argv) {
         input1[i] = (float)i;
         input2[i] = (float)i * (float)i;
     }
-    int index1 = CL.add_buffer(&CL, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-        global_size * sizeof(*input1), input1);
+    int index1 = CL.add_buffer(&CL,
+        CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+        global_size * sizeof(*input1),
+        input1);
     CL.set_arg(&CL, 0, sizeof(cl_mem *), index1);
-    int index2 = CL.add_buffer(&CL, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
-        global_size * sizeof(*input2), input2);
+    int index2 = CL.add_buffer(&CL,
+        CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR,
+        global_size * sizeof(*input2),
+        input2);
     CL.set_arg(&CL, 1, sizeof(cl_mem *), index2);
     CL.set_arg(&CL, 2, local_size * sizeof(float), -1);
     int index3 = CL
@@ -59,6 +63,7 @@ main(int argc, char **argv) {
         }
         printf("Sum: %f\n", sum);
     }
+    GL.render(&GL);
     CL.terminate(&CL);
     GL.terminate(&GL);
     return 0;
