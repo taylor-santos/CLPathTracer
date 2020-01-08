@@ -1,16 +1,19 @@
 #ifndef GLSETUP_H
 #define GLSETUP_H
 
-typedef struct GLState GLState;
-typedef struct GLData GLData;
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
 
-struct GLState {
-    GLData *data;
-    void (*render)(GLState *this);
-    void (*terminate)(GLState *this);
-};
+GLuint
+GLGetTexture(void);
 
-GLState
-GLsetup();
+void
+GLRender(void);
+
+void
+GLTerminate(void);
+
+void
+GLSetup();
 
 #endif//GLSETUP_H
