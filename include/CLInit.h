@@ -3,18 +3,21 @@
 
 #include <stddef.h>
 #include <CL/cl.h>
-#include "GLInit.h"
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
 
-void
-CLCreateImage(void);
+typedef struct CL CL;
+typedef struct CLData CLData;
 
-void
-CLExecute(int width, int height);
+struct CL {
+    CLData *data;
+    void (*DeleteImage)(CL *this);
+    void (*CreateImage)(CL *this, GLuint texture);
+    void (*Execute)(CL *this, int width, int height);
+    void (*Terminate)(CL *this);
+};
 
-void
-CLTerminate(void);
-
-void
-CLInit(const char *filename, const char *kernel_name);
+CL
+CLInit(const char *kernel_filename, const char *kernel_name);
 
 #endif//CL_SETUP_H

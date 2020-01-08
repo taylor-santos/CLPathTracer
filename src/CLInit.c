@@ -8,21 +8,26 @@
 #include <CL/cl_gl.h>
 #include <sys/time.h>
 #include <math.h>
+#include <GLFW/glfw3.h>
+#include <GL/gl3w.h>
+#include "GLInit.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-static cl_platform_id platform;
-static cl_device_id device;
-static cl_context context;
-static cl_program program;
-static cl_command_queue queue;
-static cl_kernel kernel;
-static cl_mem image;
-static cl_mem matrix_buff;
-static Camera camera;
-static Matrix camMatrix;
+struct CLData {
+    cl_platform_id platform;
+    cl_device_id device;
+    cl_context context;
+    cl_program program;
+    cl_command_queue queue;
+    cl_kernel kernel;
+    cl_mem image;
+    cl_mem matrix_buff;
+    Camera camera;
+    Matrix camMatrix;
+};
 
 static cl_platform_id
 query_platform(const cl_platform_id *platforms, cl_uint num_platforms) {
@@ -66,13 +71,13 @@ query_platform(const cl_platform_id *platforms, cl_uint num_platforms) {
     return platforms[index - 1];
 }
 
-static void
+static cl_platform_id
 get_platform(void) {
     cl_uint num_platforms;
     HANDLE_ERR(clGetPlatformIDs(0, NULL, &num_platforms));
     cl_platform_id platforms[num_platforms];
     HANDLE_ERR(clGetPlatformIDs(num_platforms, platforms, NULL));
-    platform = query_platform(platforms, num_platforms);
+    return query_platform(platforms, num_platforms);
 }
 
 static cl_device_id
@@ -117,8 +122,8 @@ query_device(const cl_device_id *devices, cl_uint num_devices) {
     return devices[index - 1];
 }
 
-static void
-get_device(void) {
+static cl_device_id
+get_device(cl_platform_id platform) {
     cl_uint num_devices;
     HANDLE_ERR(clGetDeviceIDs(platform,
         CL_DEVICE_TYPE_DEFAULT,
@@ -131,7 +136,7 @@ get_device(void) {
         num_devices,
         devices,
         NULL));
-    device = query_device(devices, num_devices);
+    return query_device(devices, num_devices);
 }
 
 static FILE *
@@ -184,8 +189,9 @@ read_file(char *buffer, size_t file_len, FILE *file) {
     }
 }
 
-static void
-create_context(void) {
+static cl_context
+create_context(cl_platform_id platform, cl_device_id device) {
+    cl_context context;
     cl_int err;
 
     cl_context_properties props[] = {
@@ -199,10 +205,12 @@ create_context(void) {
     };
     context = clCreateContext(props, 1, &device, NULL, NULL, &err);
     HANDLE_ERR(err);
+    return context;
 }
 
-static void
-build_program(const char *filename) {
+static cl_program
+build_program(const char *filename, cl_context context, cl_device_id device) {
+    cl_program program;
     FILE *file;
     size_t length;
     char *src;
@@ -242,29 +250,34 @@ build_program(const char *filename) {
         printf("%s\n", log);
         exit(EXIT_FAILURE);
     }
+    return program;
 }
 
-static void
-create_queue(void) {
+static cl_command_queue
+create_queue(cl_context context, cl_device_id device) {
+    cl_command_queue queue;
     cl_int err;
 
     queue = clCreateCommandQueue(context, device, 0, &err);
     HANDLE_ERR(err);
+    return queue;
 }
 
-static void
-create_kernel(const char *kernel_name) {
+static cl_kernel
+create_kernel(const char *kernel_name, cl_program program) {
+    cl_kernel kernel;
     cl_int err;
 
     kernel = clCreateKernel(program, kernel_name, &err);
     HANDLE_ERR(err);
+    return kernel;
 }
 
 static void
-enqueue_kernel(cl_uint dim, size_t *global_size, size_t *local_size) {
-    cl_int err;
+enqueue_kernel(cl_uint dim, size_t *global_size, size_t *local_size,
+    cl_command_queue queue, cl_kernel kernel) {
 
-    err = clEnqueueNDRangeKernel(queue,
+    HANDLE_ERR(clEnqueueNDRangeKernel(queue,
         kernel,
         dim,
         NULL,
@@ -272,75 +285,131 @@ enqueue_kernel(cl_uint dim, size_t *global_size, size_t *local_size) {
         local_size,
         0,
         NULL,
-        NULL);
-    HANDLE_ERR(err);
+        NULL));
 }
 
-void
-CLCreateImage(void) {
+static void
+delete_image(CL *this) {
+    HANDLE_ERR(clReleaseMemObject(this->data->image));
+}
+
+static void
+create_image(CL *this, GLuint texture) {
     cl_int err;
-    clReleaseMemObject(image);
-    image = clCreateFromGLTexture(context,
+
+    this->data->image = clCreateFromGLTexture(this->data->context,
         CL_MEM_WRITE_ONLY,
         GL_TEXTURE_2D,
         0,
-        GLGetTexture(),
+        texture,
         &err);
     HANDLE_ERR(err);
 }
 
-void
-CLExecute(int width, int height) {
-    cl_int err;
+static void
+execute(CL *this, int width, int height) {
+    struct timeval tv;
+    double time;
+    cl_float4 matrix[4];
 
     glFinish();
-    HANDLE_ERR(clEnqueueAcquireGLObjects(queue, 1, &image, 0, 0, NULL));
-    clSetKernelArg(kernel, 0, sizeof(image), &image);
-    struct timeval tv;
+    HANDLE_ERR(clEnqueueAcquireGLObjects(this->data->queue,
+        1,
+        &this->data->image,
+        0,
+        0,
+        NULL));
+    clSetKernelArg(this->data->kernel,
+        0,
+        sizeof(this->data->image),
+        &this->data->image);
     gettimeofday(&tv, NULL);
-    double time = (double)tv.tv_sec + tv.tv_usec / 1000000.0;
-    camera.set_position(&camera, new_Vector3(5 * cos(time), 0, 0));
-    Matrix M1 = camera.camera_transform(&camera), M2 = camera
-        .projection_transform(&camera), M3 = camera
-        .device_transform(&camera, width, height);
+    time = (double)tv.tv_sec + tv.tv_usec / 1000000.0;
+    this->data->camera
+        .set_position(&this->data->camera, new_Vector3(5 * cos(time), 0, 0));
+    Matrix M1 = this->data->camera.camera_transform(&this->data->camera);
+    Matrix M2 = this->data->camera.projection_transform(&this->data->camera);
+    Matrix M3 = this->data->camera
+        .device_transform(&this->data->camera, width, height);
     Matrix M4 = M3.times(&M3, &M2);
     M4 = M4.times(&M4, &M1);
-    camMatrix = M4.inverse(&M4, NULL);
-    cl_float4 matrix[4];
+    this->data->camMatrix = M4.inverse(&M4, NULL);
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++) {
-            matrix[y].s[x] = camMatrix.values[4 * y + x];
+            matrix[y].s[x] = this->data->camMatrix.values[4 * y + x];
         }
     }
-    clReleaseMemObject(matrix_buff);
-    matrix_buff = clCreateBuffer(context,
-        CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+    clEnqueueWriteBuffer(this->data->queue,
+        this->data->matrix_buff,
+        CL_TRUE,
+        0,
         sizeof(matrix),
         matrix,
-        &err);
-    HANDLE_ERR(err);
-    clSetKernelArg(kernel, 1, sizeof(cl_mem), &matrix_buff);
+        0,
+        NULL,
+        NULL);
     enqueue_kernel(2, (size_t[]){
         width,
         height
-    }, NULL);
-    clFinish(queue);
-    HANDLE_ERR(clEnqueueReleaseGLObjects(queue, 1, &image, 0, 0, NULL));
+    }, NULL, this->data->queue, this->data->kernel);
+    clFinish(this->data->queue);
+    HANDLE_ERR(clEnqueueReleaseGLObjects(this->data->queue,
+        1,
+        &this->data->image,
+        0,
+        0,
+        NULL));
 }
 
-void
-CLTerminate(void) {
-    camera.delete(&camera);
+static cl_mem
+create_matrix_buffer(cl_context context) {
+    cl_mem buffer;
+    cl_int err;
+
+    buffer = clCreateBuffer(context,
+        CL_MEM_READ_ONLY,
+        4 * sizeof(cl_float4),
+        NULL,
+        &err);
+    HANDLE_ERR(err);
+    return buffer;
 }
 
-void
-CLInit(const char *filename, const char *kernel_name) {
-    get_platform();
-    get_device();
-    create_context();
-    build_program(filename);
-    create_queue();
-    create_kernel(kernel_name);
-    CLCreateImage();
-    camera = new_Camera(2, 10, M_PI / 2);
+static void
+set_arg(cl_kernel kernel, int index, size_t size, void *data) {
+    HANDLE_ERR(clSetKernelArg(kernel, 1, size, data));
+}
+
+static void
+terminate(CL *this) {
+    this->data->camera.delete(&this->data->camera);
+}
+
+CL
+CLInit(const char *kernel_filename, const char *kernel_name) {
+    CLData *data;
+
+    data = malloc(sizeof(*data));
+    if (data == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    data->platform = get_platform();
+    data->device = get_device(data->platform);
+    data->context = create_context(data->platform, data->device);
+    data->program = build_program(kernel_filename,
+        data->context,
+        data->device);
+    data->queue = create_queue(data->context, data->device);
+    data->kernel = create_kernel(kernel_name, data->program);
+    data->matrix_buff = create_matrix_buffer(data->context);
+    set_arg(data->kernel, 1, sizeof(cl_mem), &data->matrix_buff);
+    data->camera = new_Camera(2, 10, M_PI / 2);
+    return (CL){
+        data,
+        delete_image,
+        create_image,
+        execute,
+        terminate
+    };;
 }

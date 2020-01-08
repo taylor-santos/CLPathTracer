@@ -1,28 +1,21 @@
 #ifndef GLINIT_H
 #define GLINIT_H
 
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
+#include "CLInit.h"
 
-GLuint
-GLGetTexture(void);
+typedef struct GL GL;
+typedef struct GLData GLData;
 
-void
-GLGetWindowPos(int *x, int *y);
+struct GL {
+    GLData *data;
+    void (*GetWindowPos)(GL *this, int *x, int *y);
+    void (*GetWindowSize)(GL *this, int *x, int *y);
+    void (*RegisterKey)(GL *this, int key, GLFWkeyfun function);
+    void (*Render)(GL *this);
+    void (*Terminate)(GL *this);
+};
 
-void
-GLGetWindowSize(int *x, int *y);
-
-void
-GLRegisterKey(int key, GLFWkeyfun function);
-
-void
-GLRender(void);
-
-void
-GLTerminate(void);
-
-void
-GLInit();
+GL
+GLInit(const char *kernel_filename, const char *kernel_name);
 
 #endif//GLINIT_H

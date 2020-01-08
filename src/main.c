@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <math.h>
-#include "GLInit.h"
-#include "CLInit.h"
 #include "GameInit.h"
 
 int
@@ -11,12 +9,7 @@ main(int argc, char **argv) {
         return 1;
     }
 
-    GLInit();
-    CLInit(argv[1], argv[2]);
-    GameInit();
-
-    GLRender();
-    CLTerminate();
-    GLTerminate();
+    GameInit(argv[1], argv[2]);
+    StartGameLoop();
     return 0;
 }

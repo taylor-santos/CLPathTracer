@@ -8,13 +8,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static GLFWmonitor *monitor;
-static GLFWwindow *window;
-static GLuint shader_program;
-static GLint tex_loc;
-static int width, height;
-static GLuint vao, texture;
-static GLFWkeyfun KeyHandlers[GLFW_KEY_LAST + 1];
+struct GLData {
+    CL CL;
+    GLFWmonitor *monitor;
+    GLFWwindow *window;
+    GLuint shader_program;
+    GLint tex_loc;
+    int width, height;
+    GLuint vao, texture;
+    GLFWkeyfun KeyHandlers[GLFW_KEY_LAST + 1];
+};
 
 static void
 error_callback(int error, const char *msg) {
@@ -29,7 +32,10 @@ init_glfw(void) {
     }
 }
 
-static void
+static GLFWmonitor *
+get_monitor(void) __attribute__ ((warn_unused_result));
+
+static GLFWmonitor *
 get_monitor(void) {
     GLFWmonitor **monitors;
     int monitor_count;
@@ -53,11 +59,14 @@ get_monitor(void) {
         const GLFWvidmode *mode = glfwGetVideoMode(monitors[i]);
         printf("[%dx%d]\n", mode->width, mode->height);
     }
-    monitor = monitors[0];
+    return monitors[0];
 }
 
-static void
-create_window() {
+static GLFWwindow *
+create_window(GLFWmonitor *monitor) __attribute__ ((warn_unused_result));
+
+static GLFWwindow *
+create_window(GLFWmonitor *monitor) {
     const GLFWvidmode *mode;
 
     mode = glfwGetVideoMode(monitor);
@@ -65,7 +74,7 @@ create_window() {
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-    window = glfwCreateWindow(mode->width / 2,
+    return glfwCreateWindow(mode->width / 2,
         mode->height / 2,
         WINDOW_NAME,
         NULL,
@@ -81,65 +90,53 @@ init_gl3w(void) {
 }
 
 static GLuint
-build_shaders() {
-    // shader source code
+compile_shader(const char *source, GLenum type) {
+    GLuint shader;
+    GLint len;
+
+    len = strlen(source);
+    shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, &len);
+    glCompileShader(shader);
+    return shader;
+}
+
+static GLuint
+build_shaders(void) {
+    GLuint shader, vertex, fragment;
+
     const char *vertex_source = "#version 330\n"
                                 "layout(location = 0) in vec4 vposition;\n"
                                 "layout(location = 1) in vec2 vtexcoord;\n"
                                 "out vec2 ftexcoord;\n"
                                 "void main() {\n"
-                                "   ftexcoord = vtexcoord;\n"
-                                "   gl_Position = vposition;\n"
+                                "    ftexcoord = vtexcoord;\n"
+                                "    gl_Position = vposition;\n"
                                 "}\n";
 
     const char *fragment_source = "#version 330\n"
                                   "uniform sampler2D tex;\n"
                                   "in vec2 ftexcoord;\n"
-                                  "layout(location = 0) out vec4 FragColor;\n"
+                                  "layout(location = 0) out vec4 fcolor;\n"
                                   "void main() {\n"
-                                  "   FragColor = texture(tex, ftexcoord);\n"
+                                  "    fcolor = texture(tex, ftexcoord);\n"
                                   "}\n";
+    vertex = compile_shader(vertex_source, GL_VERTEX_SHADER);
+    fragment = compile_shader(fragment_source, GL_FRAGMENT_SHADER);
+    shader = glCreateProgram();
+    glAttachShader(shader, vertex);
+    glAttachShader(shader, fragment);
+    glLinkProgram(shader);
 
-    // program and shader handles
-    GLuint vertex_shader, fragment_shader;
-
-    // we need these to properly pass the strings
-    const char *source;
-    GLint length;
-
-    // create and compiler vertex shader
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    source = vertex_source;
-    length = strlen(vertex_source);
-    glShaderSource(vertex_shader, 1, &source, &length);
-    glCompileShader(vertex_shader);
-
-    // create and compiler fragment shader
-    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    source = fragment_source;
-    length = strlen(fragment_source);
-    glShaderSource(fragment_shader, 1, &source, &length);
-    glCompileShader(fragment_shader);
-
-    // create program
-    shader_program = glCreateProgram();
-
-    // attach shaders
-    glAttachShader(shader_program, vertex_shader);
-    glAttachShader(shader_program, fragment_shader);
-
-    // link the program and check for errors
-    glLinkProgram(shader_program);
-
-    return shader_program;
+    return shader;
 }
 
 static void
-create_texture(void) {
+create_texture(GLuint *texture, int width, int height) {
     glViewport(0, 0, width, height);
 
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glGenTextures(1, texture);
+    glBindTexture(GL_TEXTURE_2D, *texture);
 
     // set texture parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -160,97 +157,107 @@ create_texture(void) {
 
 static void
 resize_callback(GLFWwindow *wind, int new_width, int new_height) {
-    width = max(new_width, 1);
-    height = max(new_height, 1);
-    create_texture();
-    CLCreateImage();
+    GLData *GL = glfwGetWindowUserPointer(wind);
+    GL->width = max(new_width, 1);
+    GL->height = max(new_height, 1);
+    create_texture(&GL->texture, GL->width, GL->height);
+    GL->CL.DeleteImage(&GL->CL);
+    GL->CL.CreateImage(&GL->CL, GL->texture);
 }
 
-GLuint
-GLGetTexture(void) {
-    return texture;
+static void
+get_window_pos(GL *this, int *x, int *y) {
+    glfwGetWindowPos(this->data->window, x, y);
 }
 
-void
-GLGetWindowPos(int *x, int *y) {
-    glfwGetWindowPos(window, x, y);
-}
-
-void
-GLGetWindowSize(int *x, int *y) {
-    glfwGetWindowSize(window, x, y);
+static void
+get_window_size(GL *this, int *x, int *y) {
+    glfwGetWindowSize(this->data->window, x, y);
 }
 
 static void
 key_callback(GLFWwindow *wind, int key, int scancode, int action, int mods) {
-    if (KeyHandlers[key] != NULL) {
-        KeyHandlers[key](window, key, scancode, action, mods);
+    GLData *GL = glfwGetWindowUserPointer(wind);
+
+    if (GL->KeyHandlers[key] == NULL) {
+        return;
     }
+    GL->KeyHandlers[key](GL->window, key, scancode, action, mods);
 }
 
 static void
-set_key_callback() {
+set_key_callback(GLFWwindow *window) {
     glfwSetKeyCallback(window, key_callback);
 }
 
-void
-GLRegisterKey(int key, GLFWkeyfun function) {
-    KeyHandlers[key] = function;
+static void
+register_key(GL *this, int key, GLFWkeyfun function) {
+    this->data->KeyHandlers[key] = function;
 }
 
-void
-GLRender(void) {
+static void
+render(GL *this) {
     int frame = 0;
     double time = glfwGetTime();
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(this->data->window)) {
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(shader_program);
+        glUseProgram(this->data->shader_program);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glUniform1i(tex_loc, 0);
-        glBindVertexArray(vao);
+        glBindTexture(GL_TEXTURE_2D, this->data->texture);
+        glUniform1i(this->data->tex_loc, 0);
+        glBindVertexArray(this->data->vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         GLenum error = glGetError();
         if (error != GL_NO_ERROR) {
             fprintf(stderr, "OpenGL Error: %d\n", error);
             break;
         }
-        glfwSwapBuffers(window);
-        CLExecute(width, height);
+        glfwSwapBuffers(this->data->window);
+        this->data->CL
+            .Execute(&this->data->CL, this->data->width, this->data->height);
         frame++;
     }
     time = glfwGetTime() - time;
     printf("%f fps\n", frame / time);
 }
 
-void
-GLTerminate(void) {
+static void
+terminate(GL *this) {
+    this->data->CL.Terminate(&this->data->CL);
+    free(this->data);
     glfwTerminate();
 }
 
-void
-GLInit(void) {
+GL
+GLInit(const char *kernel_filename, const char *kernel_name) {
+    GLData *data;
+    GLuint vbo, ibo;
+
+    data = malloc(sizeof(*data));
+    if (data == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+
     glfwSetErrorCallback(error_callback);
     init_glfw();
-    get_monitor();
-    create_window();
-    glfwMakeContextCurrent(window);
-    glfwSetWindowSizeCallback(window, resize_callback);
-    set_key_callback();
+    data->monitor = get_monitor();
+    data->window = create_window(data->monitor);
+    glfwSetWindowUserPointer(data->window, data);
+    glfwMakeContextCurrent(data->window);
+    glfwSetWindowSizeCallback(data->window, resize_callback);
+    set_key_callback(data->window);
     init_gl3w();
-    glfwGetFramebufferSize(window, &width, &height);
-    glViewport(0, 0, width, height);
+    glfwGetFramebufferSize(data->window, &data->width, &data->height);
+    glViewport(0, 0, data->width, data->height);
     glfwSwapInterval(VSYNC);
 
-    shader_program = build_shaders();
-    tex_loc = glGetUniformLocation(shader_program, "tex");
-    GLuint vbo, ibo;
-    // generate and bind the vao
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    data->shader_program = build_shaders();
+    data->tex_loc = glGetUniformLocation(data->shader_program, "tex");
 
-    // generate and bind the buffer object
+    glGenVertexArrays(1, &data->vao);
+    glBindVertexArray(data->vao);
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
@@ -322,5 +329,15 @@ GLInit(void) {
     //unbind vao
     glBindVertexArray(0);
 
-    create_texture();
+    create_texture(&data->texture, data->width, data->height);
+    data->CL = CLInit(kernel_filename, kernel_name);
+    data->CL.CreateImage(&data->CL, data->texture);
+    return (GL){
+        data,
+        get_window_pos,
+        get_window_size,
+        register_key,
+        render,
+        terminate
+    };
 }
