@@ -1,4 +1,4 @@
-#include "CLsetup.h"
+#include "CLInit.h"
 #include "CL/cl.h"
 #include "error.h"
 #include "camera.h"
@@ -334,7 +334,7 @@ CLTerminate(void) {
 }
 
 void
-CLSetup(const char *filename, const char *kernel_name) {
+CLInit(const char *filename, const char *kernel_name) {
     get_platform();
     get_device();
     create_context();

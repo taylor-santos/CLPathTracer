@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 #include <CL/cl.h>
-#include "GLsetup.h"
+#include "GLInit.h"
 
 void
 CLCreateImage(void);
@@ -15,6 +15,6 @@ void
 CLTerminate(void);
 
 void
-CLSetup(const char *filename, const char *kernel_name);
+CLInit(const char *filename, const char *kernel_name);
 
 #endif//CL_SETUP_H

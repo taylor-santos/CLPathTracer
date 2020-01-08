@@ -1,8 +1,8 @@
 #define WINDOW_NAME "OpenCL Path Tracer"
 #define VSYNC 0
 
-#include "GLsetup.h"
-#include "CLsetup.h"
+#include "GLInit.h"
+#include "CLInit.h"
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
@@ -14,6 +14,7 @@ static GLuint shader_program;
 static GLint tex_loc;
 static int width, height;
 static GLuint vao, texture;
+static GLFWkeyfun KeyHandlers[GLFW_KEY_LAST + 1];
 
 static void
 error_callback(int error, const char *msg) {
@@ -64,10 +65,10 @@ create_window() {
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-    window = glfwCreateWindow(mode->width,
-        mode->height,
+    window = glfwCreateWindow(mode->width / 2,
+        mode->height / 2,
         WINDOW_NAME,
-        monitor/*monitor*/,
+        NULL,
         NULL);
 }
 
@@ -171,6 +172,33 @@ GLGetTexture(void) {
 }
 
 void
+GLGetWindowPos(int *x, int *y) {
+    glfwGetWindowPos(window, x, y);
+}
+
+void
+GLGetWindowSize(int *x, int *y) {
+    glfwGetWindowSize(window, x, y);
+}
+
+static void
+key_callback(GLFWwindow *wind, int key, int scancode, int action, int mods) {
+    if (KeyHandlers[key] != NULL) {
+        KeyHandlers[key](window, key, scancode, action, mods);
+    }
+}
+
+static void
+set_key_callback() {
+    glfwSetKeyCallback(window, key_callback);
+}
+
+void
+GLRegisterKey(int key, GLFWkeyfun function) {
+    KeyHandlers[key] = function;
+}
+
+void
 GLRender(void) {
     int frame = 0;
     double time = glfwGetTime();
@@ -202,13 +230,14 @@ GLTerminate(void) {
 }
 
 void
-GLSetup(void) {
+GLInit(void) {
     glfwSetErrorCallback(error_callback);
     init_glfw();
     get_monitor();
     create_window();
     glfwMakeContextCurrent(window);
     glfwSetWindowSizeCallback(window, resize_callback);
+    set_key_callback();
     init_gl3w();
     glfwGetFramebufferSize(window, &width, &height);
     glViewport(0, 0, width, height);

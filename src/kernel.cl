@@ -50,7 +50,7 @@ trace_ray(float3 start, float3 dir) {
 
 __kernel void
 render(__write_only image2d_t image,
-       global float4*    cameraMatrix) {
+       global float4 cameraMatrix[4]) {
     const uint x_coord = get_global_id(0);
     const uint y_coord = get_global_id(1);
     const uint resX    = get_global_size(0);
