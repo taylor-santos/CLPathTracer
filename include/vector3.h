@@ -13,8 +13,10 @@ struct Vector3 {
     Vector3 (*plus)(const Vector3 *this, const Vector3 *other);
     Vector3 (*minus)(const Vector3 *this, const Vector3 *other);
     Vector3 (*cross)(const Vector3 *this, const Vector3 *other);
-    Vector3 (*negate)(const Vector3 *this);
-    Vector3 (*scale)(const Vector3 *this, double factor);
+    Vector3 (*negated)(const Vector3 *this);
+    Vector3 (*negate)(Vector3 *this);
+    Vector3 (*scaled)(const Vector3 *this, double factor);
+    Vector3 (*scale)(Vector3 *this, double factor);
 };
 
 Vector3

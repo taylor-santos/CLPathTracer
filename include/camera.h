@@ -9,11 +9,9 @@ typedef struct CamData CamData;
 
 struct Camera {
     CamData *data;
-    void (*set_position)(const Camera *this, Vector3 pos);
-    void (*set_forward)(const Camera *this, Vector3 forward);
-    Matrix (*camera_transform)(const Camera *this);
-    Matrix (*projection_transform)(const Camera *this);
-    Matrix (*device_transform)(const Camera *this, int width, int height);
+    Vector3 position;
+    Vector3 forward;
+    Matrix (*GetMatrix)(const Camera *this, int height);
     void (*delete)(Camera *this);
 };
 

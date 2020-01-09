@@ -1,5 +1,5 @@
 #define WINDOW_NAME "OpenCL Path Tracer"
-#define VSYNC 0
+#define VSYNC 1
 
 #include "GLInit.h"
 #include "CLInit.h"
@@ -132,6 +132,72 @@ build_shaders(void) {
 }
 
 static void
+setup_render(GLuint *vao) {
+    GLuint vbo, ibo;
+
+    glfwSwapInterval(VSYNC);
+    glGenVertexArrays(1, vao);
+    glBindVertexArray(*vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    GLfloat vertexData[] = { // {x,y,z,u,v}
+        1.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        1.0f, // vertex 0
+        -1.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f, // vertex 1
+        1.0f,
+        -1.0f,
+        0.0f,
+        1.0f,
+        0.0f, // vertex 2
+        -1.0f,
+        -1.0f,
+        0.0f,
+        0.0f,
+        0.0f, // vertex 3
+    };
+    glBufferData(GL_ARRAY_BUFFER,
+        sizeof(vertexData),
+        vertexData,
+        GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        5 * sizeof(GLfloat),
+        (char *)(0 + 0 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        5 * sizeof(GLfloat),
+        (char *)(0 + 3 * sizeof(GLfloat)));
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    GLuint indexData[] = {
+        0,
+        1,
+        2, // triangle 0
+        2,
+        1,
+        3 // triangle 1
+    };
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        sizeof(indexData),
+        indexData,
+        GL_STATIC_DRAW);
+    glBindVertexArray(0);
+}
+
+static void
 create_texture(GLuint *texture, int width, int height) {
     glViewport(0, 0, width, height);
 
@@ -196,30 +262,41 @@ register_key(GL *this, int key, GLFWkeyfun function) {
 }
 
 static void
+register_mouse_function(GL *this, GLFWcursorposfun function) {
+    glfwSetCursorPosCallback(this->data->window, function);
+}
+
+static void
+get_mouse_pos(GL *this, double *x, double *y) {
+    glfwGetCursorPos(this->data->window, x, y);
+}
+
+static void
+set_camera_matrix(GL *this, cl_float4 matrix[static 4]) {
+    this->data->CL.SetCameraMatrix(&this->data->CL, matrix);
+}
+
+static int
 render(GL *this) {
-    int frame = 0;
-    double time = glfwGetTime();
-    while (!glfwWindowShouldClose(this->data->window)) {
-        glfwPollEvents();
-        glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(this->data->shader_program);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, this->data->texture);
-        glUniform1i(this->data->tex_loc, 0);
-        glBindVertexArray(this->data->vao);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        GLenum error = glGetError();
-        if (error != GL_NO_ERROR) {
-            fprintf(stderr, "OpenGL Error: %d\n", error);
-            break;
-        }
-        glfwSwapBuffers(this->data->window);
-        this->data->CL
-            .Execute(&this->data->CL, this->data->width, this->data->height);
-        frame++;
+    // Renders the next frame to screen, then returns 1 if the window is
+    // still open, or 0 if the window has been closed.
+    glfwPollEvents();
+    glClear(GL_COLOR_BUFFER_BIT);
+    glUseProgram(this->data->shader_program);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, this->data->texture);
+    glUniform1i(this->data->tex_loc, 0);
+    glBindVertexArray(this->data->vao);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        fprintf(stderr, "OpenGL Error: %d\n", error);
+        exit(EXIT_FAILURE);
     }
-    time = glfwGetTime() - time;
-    printf("%f fps\n", frame / time);
+    glfwSwapBuffers(this->data->window);
+    this->data->CL
+        .Execute(&this->data->CL, this->data->width, this->data->height);
+    return !glfwWindowShouldClose(this->data->window);
 }
 
 static void
@@ -232,7 +309,6 @@ terminate(GL *this) {
 GL
 GLInit(const char *kernel_filename, const char *kernel_name) {
     GLData *data;
-    GLuint vbo, ibo;
 
     data = malloc(sizeof(*data));
     if (data == NULL) {
@@ -250,85 +326,15 @@ GLInit(const char *kernel_filename, const char *kernel_name) {
     set_key_callback(data->window);
     init_gl3w();
     glfwGetFramebufferSize(data->window, &data->width, &data->height);
-    glViewport(0, 0, data->width, data->height);
-    glfwSwapInterval(VSYNC);
+
+    glfwSetInputMode(data->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    if (glfwRawMouseMotionSupported()) {
+        glfwSetInputMode(data->window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
 
     data->shader_program = build_shaders();
+    setup_render(&data->vao);
     data->tex_loc = glGetUniformLocation(data->shader_program, "tex");
-
-    glGenVertexArrays(1, &data->vao);
-    glBindVertexArray(data->vao);
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    // data for a fullscreen quad
-    GLfloat vertexData[] = {
-        //  X     Y     Z           U     V
-        1.0f,
-        1.0f,
-        0.0f,
-        1.0f,
-        1.0f, // vertex 0
-        -1.0f,
-        1.0f,
-        0.0f,
-        0.0f,
-        1.0f, // vertex 1
-        1.0f,
-        -1.0f,
-        0.0f,
-        1.0f,
-        0.0f, // vertex 2
-        -1.0f,
-        -1.0f,
-        0.0f,
-        0.0f,
-        0.0f, // vertex 3
-    }; // 4 vertices with 5 components (floats) each
-
-    // fill with data
-    glBufferData(GL_ARRAY_BUFFER,
-        sizeof(vertexData),
-        vertexData,
-        GL_STATIC_DRAW);
-
-    // set up generic attrib pointers
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0,
-        3,
-        GL_FLOAT,
-        GL_FALSE,
-        5 * sizeof(GLfloat),
-        (char *)(0 + 0 * sizeof(GLfloat)));
-
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1,
-        2,
-        GL_FLOAT,
-        GL_FALSE,
-        5 * sizeof(GLfloat),
-        (char *)(0 + 3 * sizeof(GLfloat)));
-
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-
-    GLuint indexData[] = {
-        0,
-        1,
-        2, // first triangle
-        2,
-        1,
-        3 // second triangle
-    };
-
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-        sizeof(indexData),
-        indexData,
-        GL_STATIC_DRAW);
-
-    //unbind vao
-    glBindVertexArray(0);
-
     create_texture(&data->texture, data->width, data->height);
     data->CL = CLInit(kernel_filename, kernel_name);
     data->CL.CreateImage(&data->CL, data->texture);
@@ -336,7 +342,10 @@ GLInit(const char *kernel_filename, const char *kernel_name) {
         data,
         get_window_pos,
         get_window_size,
+        get_mouse_pos,
         register_key,
+        register_mouse_function,
+        set_camera_matrix,
         render,
         terminate
     };

@@ -17,31 +17,69 @@ mod(float a, float b) {
     return fmod(fmod(a, b) + b, b);
 }
 
+inline bool solveQuadratic(float a, float b, float c,
+    float *x0, float *x1) {
+    float discr = b * b - 4 * a * c;
+    if (discr < 0) return false;
+    else if (discr == 0) *x0 = *x1 = - 0.5 * b / a;
+    else {
+        float q = (b > 0) ?
+            -0.5 * (b + sqrt(discr)) :
+            -0.5 * (b - sqrt(discr));
+        *x0 = q / a;
+        *x1 = c / q;
+    }
+    if (*x0 > *x1) {
+        float tmp = *x0;
+        *x0 = *x1;
+        *x1 = tmp;
+    }
+
+    return true;
+}
+
 bool
-hit_sphere(float3 center, float radius, float3 start, float3 dir, float *t){
-    float3 oc = start - center;
+hit_sphere(float3 center, float radius2, float3 start, float3 dir, float *t){
+    float t0, t1;
+    float3 L = start - center;
     float a = dot(dir, dir);
-    float b = 2.0 * dot(dir, oc);
-    float c = dot(oc, oc) - radius*radius;
-    float discriminant = b*b - 4*a*c;
-    *t = (-b - sqrt(discriminant)) / (2.0*a);
-    return discriminant >= 0;
+    float b = 2 * dot(dir, L);
+    float c = dot(L, L) - radius2;
+    //if (c <= 0) return false;
+    if (!solveQuadratic(a, b, c, &t0, &t1)) {
+        return false;
+    }
+    if (t0 > t1) {
+        float tmp = t0;
+        t0 = t1;
+        t1 = tmp;
+    }
+    if (t0 < 0) {
+        t0 = t1;
+        if (t0 < 0) {
+            return false;
+        }
+    }
+    *t = t0;
+    return true;
 }
 
 float3
 trace_ray(float3 start, float3 dir) {
     float3 center = float3(0,-2,15);
     float dist;
-    if (hit_sphere(center, 5.0f, start, dir, &dist)) {
+    if (hit_sphere(center, 25.0f, start, dir, &dist)) {
         float3 pos = start + dist * dir;
         float3 normal = normalize(pos - center);
-        if (mod(atan2(normal.x, normal.y), 2*M_PI/6.0) < 0.01f ||
-            mod(atan2(normal.x, normal.z), 2*M_PI/6.0) < 0.01f ||
-            mod(atan2(normal.y, normal.x), 2*M_PI/6.0) < 0.01f ||
-            mod(atan2(normal.y, normal.z), 2*M_PI/6.0) < 0.01f ||
-            mod(atan2(normal.z, normal.x), 2*M_PI/6.0) < 0.01f ||
-            mod(atan2(normal.z, normal.y), 2*M_PI/6.0) < 0.01f) {
-            return 0;
+        if (mod(atan2(normal.x, normal.y) + 0.005, 2*M_PI/6.0) < 0.01f ||
+            mod(atan2(normal.x, normal.z)+0.005, 2*M_PI/6.0) < 0.01f) {
+            return float3(1,0,0);
+        } else if (mod(atan2(normal.y, normal.x) + 0.005, 2*M_PI/6.0) < 0.01f ||
+            mod(atan2(normal.y, normal.z) + 0.005, 2*M_PI/6.0) < 0.01f) {
+            return float3(0,1,0);
+        } else if (mod(atan2(normal.z, normal.x) + 0.005, 2*M_PI/6.0) < 0.01f ||
+            mod(atan2(normal.z, normal.y) + 0.005, 2*M_PI/6.0) < 0.01f) {
+            return float3(0,0,1);
         }
         return (normal + 1) / 2;
     }

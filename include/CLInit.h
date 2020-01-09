@@ -13,6 +13,7 @@ struct CL {
     CLData *data;
     void (*DeleteImage)(CL *this);
     void (*CreateImage)(CL *this, GLuint texture);
+    void (*SetCameraMatrix)(CL *this, cl_float4 matrix[static 4]);
     void (*Execute)(CL *this, int width, int height);
     void (*Terminate)(CL *this);
 };

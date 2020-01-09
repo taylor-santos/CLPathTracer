@@ -12,10 +12,6 @@
 #include <GL/gl3w.h>
 #include "GLInit.h"
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
 struct CLData {
     cl_platform_id platform;
     cl_device_id device;
@@ -25,7 +21,6 @@ struct CLData {
     cl_kernel kernel;
     cl_mem image;
     cl_mem matrix_buff;
-    Camera camera;
     Matrix camMatrix;
 };
 
@@ -307,47 +302,28 @@ create_image(CL *this, GLuint texture) {
 }
 
 static void
-execute(CL *this, int width, int height) {
-    struct timeval tv;
-    double time;
-    cl_float4 matrix[4];
+update_image(cl_command_queue queue, cl_mem *image, cl_kernel kernel) {
+    HANDLE_ERR(clEnqueueAcquireGLObjects(queue, 1, image, 0, 0, NULL));
+    clSetKernelArg(kernel, 0, sizeof(*image), image);
+}
 
-    glFinish();
-    HANDLE_ERR(clEnqueueAcquireGLObjects(this->data->queue,
-        1,
-        &this->data->image,
-        0,
-        0,
-        NULL));
-    clSetKernelArg(this->data->kernel,
-        0,
-        sizeof(this->data->image),
-        &this->data->image);
-    gettimeofday(&tv, NULL);
-    time = (double)tv.tv_sec + tv.tv_usec / 1000000.0;
-    this->data->camera
-        .set_position(&this->data->camera, new_Vector3(5 * cos(time), 0, 0));
-    Matrix M1 = this->data->camera.camera_transform(&this->data->camera);
-    Matrix M2 = this->data->camera.projection_transform(&this->data->camera);
-    Matrix M3 = this->data->camera
-        .device_transform(&this->data->camera, width, height);
-    Matrix M4 = M3.times(&M3, &M2);
-    M4 = M4.times(&M4, &M1);
-    this->data->camMatrix = M4.inverse(&M4, NULL);
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            matrix[y].s[x] = this->data->camMatrix.values[4 * y + x];
-        }
-    }
-    clEnqueueWriteBuffer(this->data->queue,
+static void
+set_camera_matrix(CL *this, cl_float4 matrix[static 4]) {
+    HANDLE_ERR(clEnqueueWriteBuffer(this->data->queue,
         this->data->matrix_buff,
         CL_TRUE,
         0,
-        sizeof(matrix),
+        4 * sizeof(cl_float4),
         matrix,
         0,
         NULL,
-        NULL);
+        NULL));
+}
+
+static void
+execute(CL *this, int width, int height) {
+    glFinish();
+    update_image(this->data->queue, &this->data->image, this->data->kernel);
     enqueue_kernel(2, (size_t[]){
         width,
         height
@@ -382,7 +358,6 @@ set_arg(cl_kernel kernel, int index, size_t size, void *data) {
 
 static void
 terminate(CL *this) {
-    this->data->camera.delete(&this->data->camera);
 }
 
 CL
@@ -404,11 +379,11 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
     data->kernel = create_kernel(kernel_name, data->program);
     data->matrix_buff = create_matrix_buffer(data->context);
     set_arg(data->kernel, 1, sizeof(cl_mem), &data->matrix_buff);
-    data->camera = new_Camera(2, 10, M_PI / 2);
     return (CL){
         data,
         delete_image,
         create_image,
+        set_camera_matrix,
         execute,
         terminate
     };;

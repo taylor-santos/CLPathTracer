@@ -11,5 +11,6 @@ main(int argc, char **argv) {
 
     GameInit(argv[1], argv[2]);
     StartGameLoop();
+    GameTerminate();
     return 0;
 }

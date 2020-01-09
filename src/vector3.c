@@ -55,13 +55,30 @@ cross(const Vector3 *this, const Vector3 *other) {
 }
 
 static Vector3
-negate(const Vector3 *this) {
+negated(const Vector3 *this) {
     return new_Vector3(-this->x, -this->y, -this->z);
 }
 
 static Vector3
-scale(const Vector3 *this, double factor) {
+negate(Vector3 *this) {
+    this->x = -this->x;
+    this->y = -this->y;
+    this->z = -this->z;
+    return *this;
+}
+
+static Vector3
+scaled(const Vector3 *this, double factor) {
     return new_Vector3(this->x * factor, this->y * factor, this->z * factor);
+}
+
+
+static Vector3
+scale(Vector3 *this, double factor) {
+    this->x *= factor;
+    this->y *= factor;
+    this->z *= factor;
+    return *this;
 }
 
 Vector3
@@ -78,7 +95,9 @@ new_Vector3(double x, double y, double z) {
         plus,
         minus,
         cross,
+        negated,
         negate,
+        scaled,
         scale
     };
 }

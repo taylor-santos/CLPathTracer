@@ -7,26 +7,15 @@
 
 struct CamData {
     double near, far, fov;
-    Vector3 position, forward;
 };
-
-static void
-set_position(const Camera *this, Vector3 position) {
-    this->data->position = position;
-}
-
-static void
-set_forward(const Camera *this, Vector3 forward) {
-    this->data->forward = forward;
-}
 
 static Matrix
 camera_transform(const Camera *this) {
-    Vector3 forward = this->data->forward;
+    Vector3 forward = this->forward;
     Vector3 left = new_Vector3(forward.z, 0, -forward.x);
     left.normalize(&left);
     Vector3 up = forward.cross(&forward, &left);
-    Vector3 pos = this->data->position.negate(&this->data->position);
+    Vector3 pos = this->position.negated(&this->position);
     return new_Matrix((double[16]){
         left.x,
         left.y,
@@ -68,13 +57,23 @@ projection_transform(const Camera *this) {
 }
 
 static Matrix
-device_transform(const Camera *this, int width, int height) {
+device_transform(const Camera *this, int height) {
     Matrix ret = new_Matrix(NULL);
     ret.set(&ret, 0, 0, height / 2.0);
     ret.set(&ret, 1, 1, height / 2.0);
     ret.set(&ret, 2, 2, 1.0);
     ret.set(&ret, 3, 3, 1.0);
     return ret;
+}
+
+static Matrix
+get_matrix(const Camera *this, int height) {
+    Matrix device = device_transform(this, height);
+    Matrix projection = projection_transform(this);
+    Matrix camera = camera_transform(this);
+    Matrix mat = device.times(&device, &projection);
+    mat = mat.times(&mat, &camera);
+    return mat.inverse(&mat, NULL);
 }
 
 static void
@@ -95,16 +94,12 @@ new_Camera(double near, double far, double fov) {
         near,
         far,
         fov,
-        new_Vector3(0, 0, 0),
-        new_Vector3(0, 0, 1)
     };
     return (Camera){
         data,
-        set_position,
-        set_forward,
-        camera_transform,
-        projection_transform,
-        device_transform,
+        new_Vector3(0, 0, 0),
+        new_Vector3(0, 0, 1),
+        get_matrix,
         delete
     };
 }
