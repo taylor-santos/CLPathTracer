@@ -4,16 +4,22 @@
 typedef struct Matrix Matrix;
 
 struct Matrix {
-    void (*set)(Matrix *this, unsigned int n, unsigned int m, double value);
-    double (*get)(const Matrix *this, unsigned int n, unsigned int m);
-    Matrix (*plus)(const Matrix *this, const Matrix *other);
-    Matrix (*times)(const Matrix *this, const Matrix *other);
-    Matrix (*scale)(const Matrix *this, double factor);
-    Matrix (*inverse)(const Matrix *this, int *err);
     double values[4 * 4];
 };
 
+void
+mat_set(Matrix *, unsigned int n, unsigned int m, double value);
+double
+mat_get(Matrix, unsigned int n, unsigned int m);
 Matrix
-new_Matrix(const double *values);
+mat_add(Matrix, Matrix);
+Matrix
+mat_multiply(Matrix, Matrix);
+Matrix
+mat_scaled(Matrix, double);
+Matrix *
+mat_scale(Matrix *, double);
+Matrix
+mat_inverse(Matrix, int *err);
 
 #endif//MATRIX_H

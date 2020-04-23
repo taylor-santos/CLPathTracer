@@ -1,39 +1,19 @@
-#include "CLInit.h"
-#include "CL/cl.h"
-#include "error.h"
-#include "camera.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <CL/cl_gl.h>
-#include <sys/time.h>
-#include <math.h>
-#include <GLFW/glfw3.h>
 #include <GL/gl3w.h>
-#include "GLInit.h"
 
-struct CLData {
-    cl_platform_id platform;
-    cl_device_id device;
-    cl_context context;
-    cl_program program;
-    cl_command_queue queue;
-    cl_kernel kernel;
-    cl_mem image;
-    cl_mem matrix_buff;
-    Matrix camMatrix;
-};
+#include "error.h"
 
 static cl_platform_id
 query_platform(const cl_platform_id *platforms, cl_uint num_platforms) {
     printf("There %s %d platform%s available:\n",
         num_platforms == 1
-        ? "is"
-        : "are",
+            ? "is"
+            : "are",
         num_platforms,
         num_platforms == 1
-        ? ""
-        : "s");
+            ? ""
+            : "s");
     for (unsigned int i = 0; i < num_platforms; i++) {
         size_t name_len;
         HANDLE_ERR(clGetPlatformInfo(platforms[i],
@@ -66,8 +46,8 @@ query_platform(const cl_platform_id *platforms, cl_uint num_platforms) {
     return platforms[index - 1];
 }
 
-static cl_platform_id
-get_platform(void) {
+cl_platform_id
+CLGetPlatform(void) {
     cl_uint num_platforms;
     HANDLE_ERR(clGetPlatformIDs(0, NULL, &num_platforms));
     cl_platform_id platforms[num_platforms];
@@ -79,12 +59,12 @@ static cl_device_id
 query_device(const cl_device_id *devices, cl_uint num_devices) {
     printf("There %s %d device%s available:\n",
         num_devices == 1
-        ? "is"
-        : "are",
+            ? "is"
+            : "are",
         num_devices,
         num_devices == 1
-        ? ""
-        : "s");
+            ? ""
+            : "s");
     for (unsigned int i = 0; i < num_devices; i++) {
         size_t name_len;
         HANDLE_ERR(clGetDeviceInfo(devices[i],
@@ -117,8 +97,8 @@ query_device(const cl_device_id *devices, cl_uint num_devices) {
     return devices[index - 1];
 }
 
-static cl_device_id
-get_device(cl_platform_id platform) {
+cl_device_id
+CLGetDevice(cl_platform_id platform) {
     cl_uint num_devices;
     HANDLE_ERR(clGetDeviceIDs(platform,
         CL_DEVICE_TYPE_DEFAULT,
@@ -184,8 +164,8 @@ read_file(char *buffer, size_t file_len, FILE *file) {
     }
 }
 
-static cl_context
-create_context(cl_platform_id platform, cl_device_id device) {
+cl_context
+CLCreateContext(cl_platform_id platform, cl_device_id device) {
     cl_context context;
     cl_int err;
 
@@ -203,14 +183,13 @@ create_context(cl_platform_id platform, cl_device_id device) {
     return context;
 }
 
-static cl_program
-build_program(const char *filename, cl_context context, cl_device_id device) {
+cl_program
+CLBuildProgram(const char *filename, cl_context context, cl_device_id device) {
     cl_program program;
     FILE *file;
     size_t length;
     char *src;
     int err;
-
     file = open_file(filename);
     length = file_length(file);
     src = malloc(length + 1);
@@ -248,8 +227,8 @@ build_program(const char *filename, cl_context context, cl_device_id device) {
     return program;
 }
 
-static cl_command_queue
-create_queue(cl_context context, cl_device_id device) {
+cl_command_queue
+CLCreateQueue(cl_context context, cl_device_id device) {
     cl_command_queue queue;
     cl_int err;
 
@@ -258,8 +237,8 @@ create_queue(cl_context context, cl_device_id device) {
     return queue;
 }
 
-static cl_kernel
-create_kernel(const char *kernel_name, cl_program program) {
+cl_kernel
+CLCreateKernel(const char *kernel_name, cl_program program) {
     cl_kernel kernel;
     cl_int err;
 
@@ -268,9 +247,12 @@ create_kernel(const char *kernel_name, cl_program program) {
     return kernel;
 }
 
-static void
-enqueue_kernel(cl_uint dim, size_t *global_size, size_t *local_size,
-    cl_command_queue queue, cl_kernel kernel) {
+void
+CLEnqueueKernel(cl_uint dim,
+    size_t *global_size,
+    size_t *local_size,
+    cl_command_queue queue,
+    cl_kernel kernel) {
 
     HANDLE_ERR(clEnqueueNDRangeKernel(queue,
         kernel,
@@ -281,110 +263,4 @@ enqueue_kernel(cl_uint dim, size_t *global_size, size_t *local_size,
         0,
         NULL,
         NULL));
-}
-
-static void
-delete_image(CL *this) {
-    HANDLE_ERR(clReleaseMemObject(this->data->image));
-}
-
-static void
-create_image(CL *this, GLuint texture) {
-    cl_int err;
-
-    this->data->image = clCreateFromGLTexture(this->data->context,
-        CL_MEM_WRITE_ONLY,
-        GL_TEXTURE_2D,
-        0,
-        texture,
-        &err);
-    HANDLE_ERR(err);
-}
-
-static void
-update_image(cl_command_queue queue, cl_mem *image, cl_kernel kernel) {
-    HANDLE_ERR(clEnqueueAcquireGLObjects(queue, 1, image, 0, 0, NULL));
-    clSetKernelArg(kernel, 0, sizeof(*image), image);
-}
-
-static void
-set_camera_matrix(CL *this, cl_float4 matrix[static 4]) {
-    HANDLE_ERR(clEnqueueWriteBuffer(this->data->queue,
-        this->data->matrix_buff,
-        CL_TRUE,
-        0,
-        4 * sizeof(cl_float4),
-        matrix,
-        0,
-        NULL,
-        NULL));
-}
-
-static void
-execute(CL *this, int width, int height) {
-    glFinish();
-    update_image(this->data->queue, &this->data->image, this->data->kernel);
-    enqueue_kernel(2, (size_t[]){
-        width,
-        height
-    }, NULL, this->data->queue, this->data->kernel);
-    clFinish(this->data->queue);
-    HANDLE_ERR(clEnqueueReleaseGLObjects(this->data->queue,
-        1,
-        &this->data->image,
-        0,
-        0,
-        NULL));
-}
-
-static cl_mem
-create_matrix_buffer(cl_context context) {
-    cl_mem buffer;
-    cl_int err;
-
-    buffer = clCreateBuffer(context,
-        CL_MEM_READ_ONLY,
-        4 * sizeof(cl_float4),
-        NULL,
-        &err);
-    HANDLE_ERR(err);
-    return buffer;
-}
-
-static void
-set_arg(cl_kernel kernel, int index, size_t size, void *data) {
-    HANDLE_ERR(clSetKernelArg(kernel, 1, size, data));
-}
-
-static void
-terminate(CL *this) {
-}
-
-CL
-CLInit(const char *kernel_filename, const char *kernel_name) {
-    CLData *data;
-
-    data = malloc(sizeof(*data));
-    if (data == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-    data->platform = get_platform();
-    data->device = get_device(data->platform);
-    data->context = create_context(data->platform, data->device);
-    data->program = build_program(kernel_filename,
-        data->context,
-        data->device);
-    data->queue = create_queue(data->context, data->device);
-    data->kernel = create_kernel(kernel_name, data->program);
-    data->matrix_buff = create_matrix_buffer(data->context);
-    set_arg(data->kernel, 1, sizeof(cl_mem), &data->matrix_buff);
-    return (CL){
-        data,
-        delete_image,
-        create_image,
-        set_camera_matrix,
-        execute,
-        terminate
-    };;
 }

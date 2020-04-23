@@ -1,105 +1,77 @@
-#include "camera.h"
-#include "matrix.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
-#include <vector3.h>
 
-struct CamData {
-    double near, far, fov;
-};
+#include "camera.h"
 
 static Matrix
-camera_transform(const Camera *this) {
-    Vector3 forward = this->forward;
-    Vector3 left = new_Vector3(forward.z, 0, -forward.x);
-    left.normalize(&left);
-    Vector3 up = forward.cross(&forward, &left);
-    Vector3 pos = this->position.negated(&this->position);
-    return new_Matrix((double[16]){
-        left.x,
-        left.y,
-        left.z,
-        left.dot(&left, &pos), // 1st row
-
-        up.x,
-        up.y,
-        up.z,
-        up.dot(&up, &pos), // 2nd row
-
-        forward.x,
-        forward.y,
+camera_transform(Camera cam) {
+    Vector3 forward = cam.Forward;
+    Vector3 left = {
         forward.z,
-        forward.dot(&forward, &pos), // 3rd row
+        0,
+        -forward.x
+    };
+    vec_normalize(&left);
+    Vector3 up = vec_cross(forward, left);
+    Vector3 pos = vec_negated(cam.Position);
+    return (Matrix){
+        {
+            left.x,
+            left.y,
+            left.z,
+            vec_dot(left, pos), // 1st row
 
-        0,
-        0,
-        0,
-        1 // 4th row
-    });
+            up.x,
+            up.y,
+            up.z,
+            vec_dot(up, pos), // 2nd row
+
+            forward.x,
+            forward.y,
+            forward.z,
+            vec_dot(forward, pos), // 3rd row
+
+            0,
+            0,
+            0,
+            1 // 4th row
+        }
+    };
 }
 
 static Matrix
-projection_transform(const Camera *this) {
-    Matrix mat = new_Matrix(NULL);
+projection_transform(Camera cam) {
+    Matrix mat = { 0 };
     double c, near, far, fov;
 
-    near = this->data->near;
-    far = this->data->far;
-    fov = this->data->fov;
+    near = cam.Near;
+    far = cam.Far;
+    fov = cam.FOV;
     c = 1.0 / tan(fov / 2.0);
-    mat.set(&mat, 0, 0, c);
-    mat.set(&mat, 1, 1, c);
-    mat.set(&mat, 2, 2, -(far + near) / (near - far));
-    mat.set(&mat, 3, 2, (2.0 * far * near) / (near - far));
-    mat.set(&mat, 2, 3, 1.0);
+    mat_set(&mat, 0, 0, c);
+    mat_set(&mat, 1, 1, c);
+    mat_set(&mat, 2, 2, -(far + near) / (near - far));
+    mat_set(&mat, 3, 2, (2.0 * far * near) / (near - far));
+    mat_set(&mat, 2, 3, 1.0);
     return mat;
 }
 
 static Matrix
-device_transform(const Camera *this, int height) {
-    Matrix ret = new_Matrix(NULL);
-    ret.set(&ret, 0, 0, height / 2.0);
-    ret.set(&ret, 1, 1, height / 2.0);
-    ret.set(&ret, 2, 2, 1.0);
-    ret.set(&ret, 3, 3, 1.0);
+device_transform(int height) {
+    Matrix ret = { 0 };
+    mat_set(&ret, 0, 0, height / 2.0);
+    mat_set(&ret, 1, 1, height / 2.0);
+    mat_set(&ret, 2, 2, 1.0);
+    mat_set(&ret, 3, 3, 1.0);
     return ret;
 }
 
-static Matrix
-get_matrix(const Camera *this, int height) {
-    Matrix device = device_transform(this, height);
-    Matrix projection = projection_transform(this);
-    Matrix camera = camera_transform(this);
-    Matrix mat = device.times(&device, &projection);
-    mat = mat.times(&mat, &camera);
-    return mat.inverse(&mat, NULL);
-}
-
-static void
-delete(Camera *this) {
-    free(this->data);
-}
-
-Camera
-new_Camera(double near, double far, double fov) {
-    CamData *data;
-
-    data = malloc(sizeof(*data));
-    if (data == NULL) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-    *data = (CamData){
-        near,
-        far,
-        fov,
-    };
-    return (Camera){
-        data,
-        new_Vector3(0, 0, 0),
-        new_Vector3(0, 0, 1),
-        get_matrix,
-        delete
-    };
+Matrix
+cam_matrix(Camera cam, int height) {
+    Matrix device = device_transform(height);
+    Matrix projection = projection_transform(cam);
+    Matrix camera = camera_transform(cam);
+    Matrix mat = mat_multiply(device, projection);
+    mat = mat_multiply(mat, camera);
+    return mat_inverse(mat, NULL);
 }

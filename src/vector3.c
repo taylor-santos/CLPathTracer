@@ -1,103 +1,100 @@
 #include "vector3.h"
-#include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
 
-static double
-dot(const Vector3 *this, const Vector3 *other) {
-    return this->x * other->x + this->y * other->y + this->z * other->z;
+const Vector3 Vector3_zero = {
+    0,
+    0,
+    0
+};
+const Vector3 Vector3_up = {
+    0,
+    1,
+    0
+};
+const Vector3 Vector3_forward = {
+    0,
+    0,
+    1
+};
+
+double
+vec_dot(Vector3 a, Vector3 b) {
+    return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-static double
-sqrMagnitue(const Vector3 *this) {
-    return this->x * this->x + this->y * this->y + this->z * this->z;
+double
+vec_length_squared(Vector3 v) {
+    return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
-static double
-magnitude(const Vector3 *this) {
-    return sqrt(sqrMagnitue(this));
+double
+vec_length(Vector3 v) {
+    return sqrt(vec_length_squared(v));
 }
 
-static Vector3
-normalized(const Vector3 *this) {
-    double mag = magnitude(this);
-    return new_Vector3(this->x / mag, this->y / mag, this->z / mag);
-}
-
-static Vector3
-normalize(Vector3 *this) {
-    double mag = magnitude(this);
-    this->x /= mag;
-    this->y /= mag;
-    this->z /= mag;
-    return *this;
-}
-
-static Vector3
-plus(const Vector3 *this, const Vector3 *other) {
-    return new_Vector3(this->x + other->x,
-        this->y + other->y,
-        this->z + other->z);
-}
-
-static Vector3
-minus(const Vector3 *this, const Vector3 *other) {
-    return new_Vector3(this->x - other->x,
-        this->y - other->y,
-        this->z - other->z);
-}
-
-static Vector3
-cross(const Vector3 *this, const Vector3 *other) {
-    return new_Vector3(this->y * other->z - this->z * other->y,
-        this->z * other->x - this->x * other->z,
-        this->x * other->y - this->y * other->x);
-}
-
-static Vector3
-negated(const Vector3 *this) {
-    return new_Vector3(-this->x, -this->y, -this->z);
-}
-
-static Vector3
-negate(Vector3 *this) {
-    this->x = -this->x;
-    this->y = -this->y;
-    this->z = -this->z;
-    return *this;
-}
-
-static Vector3
-scaled(const Vector3 *this, double factor) {
-    return new_Vector3(this->x * factor, this->y * factor, this->z * factor);
-}
-
-
-static Vector3
-scale(Vector3 *this, double factor) {
-    this->x *= factor;
-    this->y *= factor;
-    this->z *= factor;
-    return *this;
+Vector3 *
+vec_normalize(Vector3 *v) {
+    double length = vec_length(*v);
+    v->x /= length;
+    v->y /= length;
+    v->z /= length;
+    return v;
 }
 
 Vector3
-new_Vector3(double x, double y, double z) {
+vec_normalized(Vector3 v) {
+    return *vec_normalize(&v);
+}
+
+Vector3
+vec_add(Vector3 a, Vector3 b) {
     return (Vector3){
-        x,
-        y,
-        z,
-        dot,
-        sqrMagnitue,
-        magnitude,
-        normalized,
-        normalize,
-        plus,
-        minus,
-        cross,
-        negated,
-        negate,
-        scaled,
-        scale
+        a.x + b.x,
+        a.y + b.y,
+        a.z + b.z
     };
+}
+
+Vector3
+vec_subtract(Vector3 a, Vector3 b) {
+    return (Vector3){
+        a.x - b.x,
+        a.y - b.y,
+        a.z - b.z
+    };
+}
+
+Vector3
+vec_cross(Vector3 a, Vector3 b) {
+    return (Vector3){
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    };
+}
+
+Vector3 *
+vec_negate(Vector3 *v) {
+    v->x = -v->x;
+    v->y = -v->y;
+    v->z = -v->z;
+    return v;
+}
+
+Vector3
+vec_negated(Vector3 v) {
+    return *vec_negate(&v);
+}
+
+Vector3 *
+vec_scale(Vector3 *v, double factor) {
+    v->x *= factor;
+    v->y *= factor;
+    v->z *= factor;
+    return v;
+}
+
+Vector3
+vec_scaled(Vector3 v, double factor) {
+    return *vec_scale(&v, factor);
 }

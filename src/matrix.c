@@ -1,120 +1,164 @@
-#include <matrix.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "matrix.h"
 
-typedef unsigned int uint;
-
-static void
-set(Matrix *this, uint n, uint m, double value) {
-    this->values[4 * m + n] = value;
+void
+mat_set(Matrix *mat, unsigned int n, unsigned int m, double value) {
+    mat->values[4 * m + n] = value;
 }
 
-static double
-get(const Matrix *this, uint n, uint m) {
-    return this->values[4 * m + n];
-}
-
-static Matrix
-plus(const Matrix *this, const Matrix *other) {
-    Matrix mat = new_Matrix(NULL);
-    for (uint i = 0; i < 4 * 4; i++) {
-        mat.values[i] = this->values[i] + other->values[i];
-    }
-    return mat;
-}
-
-static Matrix
-times(const Matrix *this, const Matrix *other) {
-    Matrix mat = new_Matrix(NULL);
-    for (uint i = 0; i < 4; i++) {
-        for (uint j = 0; j < 4; j++) {
-            for (uint k = 0; k < 4; k++) {
-                mat.values[4 * i + j] +=
-                    this->values[4 * i + k] * other->values[4 * k + j];
-            }
-        }
-    }
-    return mat;
-}
-
-static Matrix
-scale(const Matrix *this, double factor) {
-    Matrix mat = new_Matrix(NULL);
-    for (uint i = 0; i < 4 * 4; i++) {
-        mat.values[i] = factor * this->values[i];
-    }
-    return mat;
-}
-
-static Matrix
-inverse(const Matrix *this, int *err) {
-    double det;
-    const double *m = this->values;
-    int i;
-
-    double inv[16] = {
-        m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15] +
-            m[9] * m[7] * m[14] + m[13] * m[6] * m[11] - m[13] * m[7] * m[10],
-        -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15] -
-            m[9] * m[3] * m[14] - m[13] * m[2] * m[11] + m[13] * m[3] * m[10],
-        m[1] * m[6] * m[15] - m[1] * m[7] * m[14] - m[5] * m[2] * m[15] +
-            m[5] * m[3] * m[14] + m[13] * m[2] * m[7] - m[13] * m[3] * m[6],
-        -m[1] * m[6] * m[11] + m[1] * m[7] * m[10] + m[5] * m[2] * m[11] -
-            m[5] * m[3] * m[10] - m[9] * m[2] * m[7] + m[9] * m[3] * m[6],
-        -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15] -
-            m[8] * m[7] * m[14] - m[12] * m[6] * m[11] + m[12] * m[7] * m[10],
-        m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15] +
-            m[8] * m[3] * m[14] + m[12] * m[2] * m[11] - m[12] * m[3] * m[10],
-        -m[0] * m[6] * m[15] + m[0] * m[7] * m[14] + m[4] * m[2] * m[15] -
-            m[4] * m[3] * m[14] - m[12] * m[2] * m[7] + m[12] * m[3] * m[6],
-        m[0] * m[6] * m[11] - m[0] * m[7] * m[10] - m[4] * m[2] * m[11] +
-            m[4] * m[3] * m[10] + m[8] * m[2] * m[7] - m[8] * m[3] * m[6],
-        m[4] * m[9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15] +
-            m[8] * m[7] * m[13] + m[12] * m[5] * m[11] - m[12] * m[7] * m[9],
-        -m[0] * m[9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15] -
-            m[8] * m[3] * m[13] - m[12] * m[1] * m[11] + m[12] * m[3] * m[9],
-        m[0] * m[5] * m[15] - m[0] * m[7] * m[13] - m[4] * m[1] * m[15] +
-            m[4] * m[3] * m[13] + m[12] * m[1] * m[7] - m[12] * m[3] * m[5],
-        -m[0] * m[5] * m[11] + m[0] * m[7] * m[9] + m[4] * m[1] * m[11] -
-            m[4] * m[3] * m[9] - m[8] * m[1] * m[7] + m[8] * m[3] * m[5],
-        -m[4] * m[9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14] -
-            m[8] * m[6] * m[13] - m[12] * m[5] * m[10] + m[12] * m[6] * m[9],
-        m[0] * m[9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14] +
-            m[8] * m[2] * m[13] + m[12] * m[1] * m[10] - m[12] * m[2] * m[9],
-        -m[0] * m[5] * m[14] + m[0] * m[6] * m[13] + m[4] * m[1] * m[14] -
-            m[4] * m[2] * m[13] - m[12] * m[1] * m[6] + m[12] * m[2] * m[5],
-        m[0] * m[5] * m[10] - m[0] * m[6] * m[9] - m[4] * m[1] * m[10] +
-            m[4] * m[2] * m[9] + m[8] * m[1] * m[6] - m[8] * m[2] * m[5]
-    };
-
-    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
-    if (det == 0) {
-        if (err != NULL) {
-            *err = 1;
-        }
-        return new_Matrix(NULL);
-    }
-    det = 1.0 / det;
-    for (i = 0; i < 16; i++) {
-        inv[i] *= det;
-    }
-    return new_Matrix(inv);
+double
+mat_get(Matrix mat, unsigned int n, unsigned int m) {
+    return mat.values[4 * m + n];
 }
 
 Matrix
-new_Matrix(const double *values) {
-    Matrix matrix = {
-        set,
-        get,
-        plus,
-        times,
-        scale,
-        inverse,
-        { 0 }
-    };
-    if (values != NULL) {
-        memcpy(matrix.values, values, 16 * sizeof(*values));
+mat_add(Matrix a, Matrix b) {
+    Matrix ret = { 0 };
+    for (unsigned int i = 0; i < 4 * 4; i++) {
+        ret.values[i] = a.values[i] + b.values[i];
     }
-    return matrix;
+    return ret;
+}
+
+Matrix
+mat_multiply(Matrix a, Matrix b) {
+    Matrix ret = { 0 };
+    for (unsigned int i = 0; i < 4; i++) {
+        for (unsigned int j = 0; j < 4; j++) {
+            for (unsigned int k = 0; k < 4; k++) {
+                ret.values[4 * i + j] +=
+                    a.values[4 * i + k] * b.values[4 * k + j];
+            }
+        }
+    }
+    return ret;
+}
+
+Matrix *
+mat_scale(Matrix *mat, double factor) {
+    for (unsigned int i = 0; i < 4 * 4; i++) {
+        mat->values[i] *= factor;
+    }
+    return mat;
+}
+
+Matrix
+mat_scaled(Matrix mat, double factor) {
+    return *mat_scale(&mat, factor);
+}
+
+Matrix
+mat_inverse(Matrix m, int *err) {
+    double det;
+    Matrix inv = {
+        {
+            m.values[5] * m.values[10] * m.values[15] -
+                m.values[5] * m.values[11] * m.values[14] -
+                m.values[9] * m.values[6] * m.values[15] +
+                m.values[9] * m.values[7] * m.values[14] +
+                m.values[13] * m.values[6] * m.values[11] -
+                m.values[13] * m.values[7] * m.values[10],
+            -m.values[1] * m.values[10] * m.values[15] +
+                m.values[1] * m.values[11] * m.values[14] +
+                m.values[9] * m.values[2] * m.values[15] -
+                m.values[9] * m.values[3] * m.values[14] -
+                m.values[13] * m.values[2] * m.values[11] +
+                m.values[13] * m.values[3] * m.values[10],
+            m.values[1] * m.values[6] * m.values[15] -
+                m.values[1] * m.values[7] * m.values[14] -
+                m.values[5] * m.values[2] * m.values[15] +
+                m.values[5] * m.values[3] * m.values[14] +
+                m.values[13] * m.values[2] * m.values[7] -
+                m.values[13] * m.values[3] * m.values[6],
+            -m.values[1] * m.values[6] * m.values[11] +
+                m.values[1] * m.values[7] * m.values[10] +
+                m.values[5] * m.values[2] * m.values[11] -
+                m.values[5] * m.values[3] * m.values[10] -
+                m.values[9] * m.values[2] * m.values[7] +
+                m.values[9] * m.values[3] * m.values[6],
+            -m.values[4] * m.values[10] * m.values[15] +
+                m.values[4] * m.values[11] * m.values[14] +
+                m.values[8] * m.values[6] * m.values[15] -
+                m.values[8] * m.values[7] * m.values[14] -
+                m.values[12] * m.values[6] * m.values[11] +
+                m.values[12] * m.values[7] * m.values[10],
+            m.values[0] * m.values[10] * m.values[15] -
+                m.values[0] * m.values[11] * m.values[14] -
+                m.values[8] * m.values[2] * m.values[15] +
+                m.values[8] * m.values[3] * m.values[14] +
+                m.values[12] * m.values[2] * m.values[11] -
+                m.values[12] * m.values[3] * m.values[10],
+            -m.values[0] * m.values[6] * m.values[15] +
+                m.values[0] * m.values[7] * m.values[14] +
+                m.values[4] * m.values[2] * m.values[15] -
+                m.values[4] * m.values[3] * m.values[14] -
+                m.values[12] * m.values[2] * m.values[7] +
+                m.values[12] * m.values[3] * m.values[6],
+            m.values[0] * m.values[6] * m.values[11] -
+                m.values[0] * m.values[7] * m.values[10] -
+                m.values[4] * m.values[2] * m.values[11] +
+                m.values[4] * m.values[3] * m.values[10] +
+                m.values[8] * m.values[2] * m.values[7] -
+                m.values[8] * m.values[3] * m.values[6],
+            m.values[4] * m.values[9] * m.values[15] -
+                m.values[4] * m.values[11] * m.values[13] -
+                m.values[8] * m.values[5] * m.values[15] +
+                m.values[8] * m.values[7] * m.values[13] +
+                m.values[12] * m.values[5] * m.values[11] -
+                m.values[12] * m.values[7] * m.values[9],
+            -m.values[0] * m.values[9] * m.values[15] +
+                m.values[0] * m.values[11] * m.values[13] +
+                m.values[8] * m.values[1] * m.values[15] -
+                m.values[8] * m.values[3] * m.values[13] -
+                m.values[12] * m.values[1] * m.values[11] +
+                m.values[12] * m.values[3] * m.values[9],
+            m.values[0] * m.values[5] * m.values[15] -
+                m.values[0] * m.values[7] * m.values[13] -
+                m.values[4] * m.values[1] * m.values[15] +
+                m.values[4] * m.values[3] * m.values[13] +
+                m.values[12] * m.values[1] * m.values[7] -
+                m.values[12] * m.values[3] * m.values[5],
+            -m.values[0] * m.values[5] * m.values[11] +
+                m.values[0] * m.values[7] * m.values[9] +
+                m.values[4] * m.values[1] * m.values[11] -
+                m.values[4] * m.values[3] * m.values[9] -
+                m.values[8] * m.values[1] * m.values[7] +
+                m.values[8] * m.values[3] * m.values[5],
+            -m.values[4] * m.values[9] * m.values[14] +
+                m.values[4] * m.values[10] * m.values[13] +
+                m.values[8] * m.values[5] * m.values[14] -
+                m.values[8] * m.values[6] * m.values[13] -
+                m.values[12] * m.values[5] * m.values[10] +
+                m.values[12] * m.values[6] * m.values[9],
+            m.values[0] * m.values[9] * m.values[14] -
+                m.values[0] * m.values[10] * m.values[13] -
+                m.values[8] * m.values[1] * m.values[14] +
+                m.values[8] * m.values[2] * m.values[13] +
+                m.values[12] * m.values[1] * m.values[10] -
+                m.values[12] * m.values[2] * m.values[9],
+            -m.values[0] * m.values[5] * m.values[14] +
+                m.values[0] * m.values[6] * m.values[13] +
+                m.values[4] * m.values[1] * m.values[14] -
+                m.values[4] * m.values[2] * m.values[13] -
+                m.values[12] * m.values[1] * m.values[6] +
+                m.values[12] * m.values[2] * m.values[5],
+            m.values[0] * m.values[5] * m.values[10] -
+                m.values[0] * m.values[6] * m.values[9] -
+                m.values[4] * m.values[1] * m.values[10] +
+                m.values[4] * m.values[2] * m.values[9] +
+                m.values[8] * m.values[1] * m.values[6] -
+                m.values[8] * m.values[2] * m.values[5]
+        }
+    };
+
+    det = m.values[0] * inv.values[0] + m.values[1] * inv.values[4] +
+        m.values[2] * inv.values[8] + m.values[3] * inv.values[12];
+    if (det == 0) {
+        if (err) {
+            *err = 1;
+        }
+        return (Matrix){ 0 };
+    }
+    det = 1.0 / det;
+    mat_scale(&inv, det);
+    return inv;
 }

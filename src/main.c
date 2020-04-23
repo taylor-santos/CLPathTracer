@@ -1,15 +1,16 @@
 #include <stdio.h>
-#include <math.h>
-#include "GameInit.h"
+#include "game.h"
+
+#define KERNEL_FILENAME "src/kernel.cl"
+#define KERNEL_NAME "render"
 
 int
 main(int argc, char **argv) {
-    if (argc != 3) {
-        printf("usage: %s shader_file kernel_name\n", argv[0]);
+    if (argc != 1) {
+        fprintf(stderr, "usage: %s\n", argv[0]);
         return 1;
     }
-
-    GameInit(argv[1], argv[2]);
+    GameInit(KERNEL_FILENAME, KERNEL_NAME);
     StartGameLoop();
     GameTerminate();
     return 0;

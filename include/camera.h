@@ -4,18 +4,15 @@
 #include "matrix.h"
 #include "vector3.h"
 
-typedef struct Camera Camera;
-typedef struct CamData CamData;
+typedef struct Camera {
+    double Near;
+    double Far;
+    double FOV;
+    Vector3 Position;
+    Vector3 Forward;
+} Camera;
 
-struct Camera {
-    CamData *data;
-    Vector3 position;
-    Vector3 forward;
-    Matrix (*GetMatrix)(const Camera *this, int height);
-    void (*delete)(Camera *this);
-};
-
-Camera
-new_Camera(double near, double far, double fov);
+Matrix
+cam_matrix(Camera, int height);
 
 #endif//CAMERA_H
