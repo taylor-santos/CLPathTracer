@@ -169,6 +169,7 @@ CLCreateContext(cl_platform_id platform, cl_device_id device) {
     cl_context context;
     cl_int err;
 
+    #ifdef WIN32
     cl_context_properties props[] = {
         CL_CONTEXT_PLATFORM,
         (cl_context_properties)platform,
@@ -178,6 +179,28 @@ CLCreateContext(cl_platform_id platform, cl_device_id device) {
         (cl_context_properties)wglGetCurrentDC(),
         0
     };
+    #elif __APPLE__
+    CGLContextObj glContext = CGLGetCurrentContext();
+    CGLShareGroupObj shareGroup = CGLGetShareGroup(glContext);
+
+    cl_context_properties props[] =
+    {
+        CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
+        (cl_context_properties)shareGroup,
+        0
+    };
+    #else
+    cl_context_properties props[] = {
+        CL_CONTEXT_PLATFORM,
+        (cl_context_properties)platform,
+        CL_GL_CONTEXT_KHR,
+        (cl_context_properties)glXGetCurrentContext(),
+        CL_GLX_DISPLAY_KHR,
+        (cl_context_properties)glXGetCurrentDisplay(),
+        0
+    };
+    #endif
+
     context = clCreateContext(props, 1, &device, NULL, NULL, &err);
     HANDLE_ERR(err);
     return context;
