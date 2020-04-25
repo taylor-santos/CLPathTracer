@@ -23,7 +23,7 @@ resize_callback(GLFWwindow *wind, int new_width, int new_height) {
     State.height = new_height >= 1
         ? new_height
         : 1;
-    State.texture = GLCreateTexture(State.width, State.height);
+    GLResizeTexture(&State.texture, State.width, State.height);
     CLDeleteImage();
     CLCreateImage(State.texture);
 }

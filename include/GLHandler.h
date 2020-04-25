@@ -16,6 +16,8 @@ GLuint
 GLBuildShader(void);
 GLuint
 GLCreateTexture(int width, int height);
+void
+GLResizeTexture(GLuint *texture, int width, int height);
 GLuint
 GLSetupRender(void);
 
