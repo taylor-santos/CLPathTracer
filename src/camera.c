@@ -6,37 +6,19 @@
 static Matrix
 camera_transform(Camera cam) {
     Vector3 forward = cam.Forward;
-    Vector3 left = {
-        forward.z,
-        0,
-        -forward.x
-    };
+    Vector3 left = Vector3(vec_z(forward), 0, -vec_x(forward));
     vec_normalize(&left);
     Vector3 up = vec_cross(forward, left);
     Vector3 pos = vec_negated(cam.Position);
-    return (Matrix){
-        {
-            left.x,
-            left.y,
-            left.z,
-            vec_dot(left, pos), // 1st row
-
-            up.x,
-            up.y,
-            up.z,
-            vec_dot(up, pos), // 2nd row
-
-            forward.x,
-            forward.y,
-            forward.z,
-            vec_dot(forward, pos), // 3rd row
-
-            0,
-            0,
-            0,
-            1 // 4th row
-        }
-    };
+    return Matrix(
+    // 1st row
+        vec_x(left), vec_y(left), vec_z(left), vec_dot(left, pos),
+    // 2nd row
+        vec_x(up), vec_y(up), vec_z(up), vec_dot(up, pos),
+    // 3rd row
+        vec_x(forward), vec_y(forward), vec_z(forward), vec_dot(forward, pos),
+    // 4th row
+        0, 0, 0, 1);
 }
 
 static Matrix

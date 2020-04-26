@@ -170,11 +170,10 @@ mouse_handler(GLFWwindow *window, double x, double y) {
     State.lookRotation.x =
         fmod(fmod(State.lookRotation.x, 2 * M_PI) + 2 * M_PI, 2 * M_PI);
 
-    State.camera.Forward = (Vector3){
-        -cos(State.lookRotation.y) * sin(State.lookRotation.x),
-        sin(State.lookRotation.y),
-        cos(State.lookRotation.x) * cos(State.lookRotation.y)
-    };
+    State.camera.Forward =
+        Vector3(-cos(State.lookRotation.y) * sin(State.lookRotation.x),
+            sin(State.lookRotation.y),
+            cos(State.lookRotation.x) * cos(State.lookRotation.y));
 }
 
 static void

@@ -45,18 +45,12 @@ update_image(cl_command_queue queue, cl_mem *image, cl_kernel kernel) {
 
 void
 CLSetCameraMatrix(Matrix matrix) {
-    cl_float4 mat[4];
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            mat[y].s[x] = matrix.values[4 * y + x];
-        }
-    }
     HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
         State.matrix,
         CL_TRUE,
         0,
-        4 * sizeof(cl_float4),
-        mat,
+        sizeof(Matrix),
+        &matrix,
         0,
         NULL,
         NULL));

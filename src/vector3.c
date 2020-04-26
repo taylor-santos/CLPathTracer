@@ -1,30 +1,18 @@
 #include "vector3.h"
 #include <math.h>
 
-const Vector3 Vector3_zero = {
-    0,
-    0,
-    0
-};
-const Vector3 Vector3_up = {
-    0,
-    1,
-    0
-};
-const Vector3 Vector3_forward = {
-    0,
-    0,
-    1
-};
+#define vec_x(v) (v).s[0]
+#define vec_y(v) (v).s[1]
+#define vec_z(v) (v).s[2]
 
 double
 vec_dot(Vector3 a, Vector3 b) {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+    return vec_x(a) * vec_x(b) + vec_y(a) * vec_y(b) + vec_z(a) * vec_z(b);
 }
 
 double
 vec_length_squared(Vector3 v) {
-    return v.x * v.x + v.y * v.y + v.z * v.z;
+    return vec_x(v) * vec_x(v) + vec_y(v) * vec_y(v) + vec_z(v) * vec_z(v);
 }
 
 double
@@ -35,9 +23,9 @@ vec_length(Vector3 v) {
 Vector3 *
 vec_normalize(Vector3 *v) {
     double length = vec_length(*v);
-    v->x /= length;
-    v->y /= length;
-    v->z /= length;
+    vec_x(*v) /= length;
+    vec_y(*v) /= length;
+    vec_z(*v) /= length;
     return v;
 }
 
@@ -48,36 +36,31 @@ vec_normalized(Vector3 v) {
 
 Vector3
 vec_add(Vector3 a, Vector3 b) {
-    return (Vector3){
-        a.x + b.x,
-        a.y + b.y,
-        a.z + b.z
-    };
+    return Vector3(vec_x(a) + vec_x(b),
+        vec_y(a) + vec_y(b),
+        vec_z(a) + vec_z(b));
 }
 
 Vector3
 vec_subtract(Vector3 a, Vector3 b) {
-    return (Vector3){
-        a.x - b.x,
-        a.y - b.y,
-        a.z - b.z
-    };
+    return Vector3(vec_x(a) - vec_x(b),
+        vec_y(a) - vec_y(b),
+        vec_z(a) - vec_z(b));
 }
 
 Vector3
 vec_cross(Vector3 a, Vector3 b) {
-    return (Vector3){
-        a.y * b.z - a.z * b.y,
-        a.z * b.x - a.x * b.z,
-        a.x * b.y - a.y * b.x
-    };
+    float x = vec_y(a) * vec_z(b) - vec_z(a) * vec_y(b);
+    float y = vec_z(a) * vec_x(b) - vec_x(a) * vec_z(b);
+    float z = vec_x(a) * vec_y(b) - vec_y(a) * vec_x(b);
+    return Vector3(x, y, z);
 }
 
 Vector3 *
 vec_negate(Vector3 *v) {
-    v->x = -v->x;
-    v->y = -v->y;
-    v->z = -v->z;
+    vec_x(*v) = -vec_x(*v);
+    vec_y(*v) = -vec_y(*v);
+    vec_z(*v) = -vec_z(*v);
     return v;
 }
 
@@ -88,9 +71,9 @@ vec_negated(Vector3 v) {
 
 Vector3 *
 vec_scale(Vector3 *v, double factor) {
-    v->x *= factor;
-    v->y *= factor;
-    v->z *= factor;
+    vec_x(*v) *= factor;
+    vec_y(*v) *= factor;
+    vec_z(*v) *= factor;
     return v;
 }
 
