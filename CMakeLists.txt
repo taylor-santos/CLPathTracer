@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(CLPathTracer C)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_EXTENSIONS OFF)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -pedantic -Wextra -Wformat -Wno-unused-parameter")
 

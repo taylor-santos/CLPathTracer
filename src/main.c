@@ -1,4 +1,5 @@
 #include <stdio.h>
+
 #include "game.h"
 
 #define KERNEL_FILENAME "src/kernel.cl"

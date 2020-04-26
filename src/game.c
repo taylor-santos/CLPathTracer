@@ -5,6 +5,7 @@
 #include "GLState.h"
 #include "camera.h"
 #include "physics.h"
+#include "object.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -39,7 +40,7 @@ static struct {
     Camera camera;
     Vector3 camVel;
 } State;
-
+static Object *objects;
 static int prevScreenPos[2], prevScreenSize[2];
 
 double
@@ -147,6 +148,17 @@ sprint(GLFWwindow *window, int key, int scancode, int action, int mods) {
     }
 }
 
+static void
+change_fov(GLFWwindow *window, double xoffset, double yoffset) {
+    double fov = State.camera.FOV / M_PI;
+    fov = -fov / (fov - 1);
+    double factor = pow(0.9, yoffset);
+    GameProperties.mouseSensitivity.x *= factor;
+    GameProperties.mouseSensitivity.y *= factor;
+    fov *= factor;
+    State.camera.FOV = M_PI * fov / (1 + fov);
+}
+
 void
 GameTerminate(void) {
     GLTerminate();
@@ -217,6 +229,7 @@ GameInit(const char *kernel_filename, const char *kernel_name) {
     GLRegisterKey(GLFW_KEY_S, back_key);
     GLRegisterKey(GLFW_KEY_A, left_key);
     GLRegisterKey(GLFW_KEY_LEFT_SHIFT, sprint);
+    GLRegisterScroll(change_fov);
     GLRegisterMouseFunction(mouse_handler);
     GLGetWindowPos(&prevScreenPos[0], &prevScreenPos[1]);
     GLGetWindowSize(&prevScreenSize[0], &prevScreenSize[1]);

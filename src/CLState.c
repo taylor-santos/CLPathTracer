@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <CL/cl_gl.h>
 #include <math.h>
 #include <GL/gl3w.h>

@@ -57,6 +57,11 @@ GLRegisterKey(int key, GLFWkeyfun function) {
 }
 
 void
+GLRegisterScroll(GLFWscrollfun callback) {
+    glfwSetScrollCallback(State.window, callback);
+}
+
+void
 GLRegisterMouseFunction(GLFWcursorposfun function) {
     glfwSetCursorPosCallback(State.window, function);
 }

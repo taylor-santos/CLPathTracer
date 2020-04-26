@@ -1,5 +1,6 @@
-#include "vector3.h"
 #include <math.h>
+
+#include "vector3.h"
 
 #define vec_x(v) (v).s[0]
 #define vec_y(v) (v).s[1]

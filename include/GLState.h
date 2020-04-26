@@ -14,6 +14,8 @@ GLSetCameraMatrix(Matrix matrix);
 void
 GLRegisterKey(int key, GLFWkeyfun function);
 void
+GLRegisterScroll(GLFWscrollfun callback);
+void
 GLRegisterMouseFunction(GLFWcursorposfun function);
 void
 GLGetMousePos(double *x, double *y);
