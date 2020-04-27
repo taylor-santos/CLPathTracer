@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "physics.h"
 #include "object.h"
+#include "vector.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -40,7 +41,7 @@ static struct {
     Camera camera;
     Vector3 camVel;
 } State;
-static Object *objects;
+static Object *objects; // vector<Object>
 static int prevScreenPos[2], prevScreenSize[2];
 
 double
@@ -163,6 +164,7 @@ void
 GameTerminate(void) {
     GLTerminate();
     PhysTerminate();
+    delete_vector(objects);
 }
 
 static void
@@ -198,6 +200,11 @@ update_camera(void) {
     GLSetCameraMatrix(matrix);
 }
 
+static void
+update_objects(void) {
+    GLSetObjects(objects, vector_size(objects));
+}
+
 void
 StartGameLoop(void) {
     double speed;
@@ -215,6 +222,7 @@ StartGameLoop(void) {
         vec_scale(&forward, State.moveKey.forward - State.moveKey.back);
         State.camVel = vec_scaled(vec_add(right, forward), speed);
         update_camera();
+        update_objects();
         PhysStep(update_time());
     }
 }
@@ -243,4 +251,35 @@ GameInit(const char *kernel_filename, const char *kernel_name) {
         Vector3_forward
     };
     AddPhysObject(&State.camera.Position, &State.camVel);
+    objects = new_vector();
+    vector_append(objects, Object, ((Object){
+        Vector3(5, -5, 15),
+        OBJ_SPHERE, .sphere = {
+            5
+        }
+    }));
+    vector_append(objects, Object, ((Object){
+        Vector3(-5, -5, 15),
+        OBJ_SPHERE, .sphere = {
+            5
+        }
+    }));
+    vector_append(objects, Object, ((Object){
+        Vector3(5, 5, 15),
+        OBJ_SPHERE, .sphere = {
+            5
+        }
+    }));
+    vector_append(objects, Object, ((Object){
+        Vector3(-5, 5, 15),
+        OBJ_SPHERE, .sphere = {
+            5
+        }
+    }));
+    vector_append(objects, Object, ((Object){
+        Vector3(0, 0, 15),
+        OBJ_SPHERE, .sphere = {
+            2
+        }
+    }));
 }

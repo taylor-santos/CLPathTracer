@@ -5,6 +5,7 @@
 
 #include "CLState.h"
 #include "GLHandler.h"
+#include "object.h"
 
 static struct {
     GLFWmonitor *monitor;
@@ -74,6 +75,11 @@ GLGetMousePos(double *x, double *y) {
 void
 GLSetCameraMatrix(Matrix matrix) {
     CLSetCameraMatrix(matrix);
+}
+
+void
+GLSetObjects(Object *objects, size_t size) {
+    CLSetObjects(objects, size);
 }
 
 int

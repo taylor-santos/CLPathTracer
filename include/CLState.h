@@ -7,6 +7,7 @@
 #include <GLFW/glfw3.h>
 
 #include "matrix.h"
+#include "object.h"
 
 void
 CLInit(const char *kernel_filename, const char *kernel_name);
@@ -14,6 +15,8 @@ void
 CLTerminate(void);
 void
 CLSetCameraMatrix(Matrix matrix);
+void
+CLSetObjects(Object *objects, size_t size);
 void
 CLDeleteImage(void);
 void

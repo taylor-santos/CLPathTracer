@@ -6,6 +6,7 @@
 #include "error.h"
 #include "camera.h"
 #include "CLHandler.h"
+#include "object.h"
 
 static struct {
     cl_platform_id platform;
@@ -16,6 +17,8 @@ static struct {
     cl_kernel kernel;
     cl_mem image;
     cl_mem matrix;
+    cl_mem objects;
+    cl_int objcount;
 } State;
 
 void
@@ -55,6 +58,41 @@ CLSetCameraMatrix(Matrix matrix) {
         NULL));
 }
 
+static void
+set_arg(cl_kernel kernel, int index, size_t size, void *data) {
+    HANDLE_ERR(clSetKernelArg(kernel, index, size, data));
+}
+
+static void
+resize_object_buffer(size_t size) {
+    cl_int err;
+    State.objects =
+        clCreateBuffer(State.context, CL_MEM_READ_ONLY, size, NULL, &err);
+    HANDLE_ERR(err);
+    set_arg(State.kernel, 2, sizeof(cl_mem), &State.objects);
+    State.objcount = size / sizeof(Object);
+    set_arg(State.kernel, 3, sizeof(cl_int), &State.objcount);
+}
+
+void
+CLSetObjects(Object *objects, size_t size) {
+    if (size / sizeof(Object) != State.objcount) {
+        resize_object_buffer(size);
+    }
+    if (size == 0) {
+        return;
+    }
+    HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
+        State.objects,
+        CL_TRUE,
+        0,
+        size,
+        objects,
+        0,
+        NULL,
+        NULL));
+}
+
 void
 CLExecute(int width, int height) {
     glFinish();
@@ -73,22 +111,13 @@ CLExecute(int width, int height) {
 }
 
 static cl_mem
-create_matrix_buffer(cl_context context) {
+create_buffer(cl_context context, size_t size) {
     cl_mem buffer;
     cl_int err;
 
-    buffer = clCreateBuffer(context,
-        CL_MEM_READ_ONLY,
-        4 * sizeof(cl_float4),
-        NULL,
-        &err);
+    buffer = clCreateBuffer(context, CL_MEM_READ_ONLY, size, NULL, &err);
     HANDLE_ERR(err);
     return buffer;
-}
-
-static void
-set_arg(cl_kernel kernel, int index, size_t size, void *data) {
-    HANDLE_ERR(clSetKernelArg(kernel, index, size, data));
 }
 
 void
@@ -104,6 +133,8 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
         CLBuildProgram(kernel_filename, State.context, State.device);
     State.queue = CLCreateQueue(State.context, State.device);
     State.kernel = CLCreateKernel(kernel_name, State.program);
-    State.matrix = create_matrix_buffer(State.context);
+    State.matrix = create_buffer(State.context, sizeof(Matrix));
     set_arg(State.kernel, 1, sizeof(cl_mem), &State.matrix);
+    set_arg(State.kernel, 2, sizeof(cl_mem), &State.objects);
+    set_arg(State.kernel, 3, sizeof(cl_int), &State.objcount);
 }

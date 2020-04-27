@@ -17,7 +17,7 @@ typedef struct __attribute__ ((packed)) Object {
 
 typedef struct Hit {
     float dist;
-    Object *obj
+    __global Object *obj;
 } Hit;
 
 float3
@@ -83,12 +83,12 @@ hit_sphere(float3 center, float radius2, float3 start, float3 dir, float *t) {
 
 float3
 trace_ray(float3 start,
-    float3 dir,
-    Object *objects,
-    int objcount,
-    int depth,
-    float str,
-    Object *ignore) {
+        float3 dir,
+        global Object *objects,
+        int objcount,
+        int depth,
+        float str,
+        global Object *ignore) {
     if (depth == 0) {
         return 0;
     }
@@ -133,11 +133,15 @@ trace_ray(float3 start,
 }
 
 __kernel void
-render(__write_only image2d_t image, global float4 cam[4]) {
+render(__write_only image2d_t image,
+        __global float4 cam[4],
+        global struct Object *objects,
+        int objcount) {
     const uint x_coord = get_global_id(0);
     const uint y_coord = get_global_id(1);
     const uint resX = get_global_size(0);
     const uint resY = get_global_size(1);
+
     const float3 origin =
         float3(cam[0].z / cam[3].z, cam[1].z / cam[3].z, cam[2].z / cam[3].z);
     const float3 ncp = mul(cam,
@@ -145,43 +149,12 @@ render(__write_only image2d_t image, global float4 cam[4]) {
     const float3 fcp = mul(cam,
         float3(x_coord - (float)resX / 2, y_coord - (float)resY / 2, 1));
     const float3 dir = normalize((fcp - ncp).xyz);
-    Object spheres[5];
-    spheres[0] = (Object){
-        float3(5, -5, 15),
-        OBJ_SPHERE, .sphere = {
-            5
-        }
-    };
-    spheres[1] = (Object){
-        float3(-5, -5, 15),
-        OBJ_SPHERE, .sphere = {
-            5
-        }
-    };
-    spheres[2] = (Object){
-        float3(5, 5, 15),
-        OBJ_SPHERE, .sphere = {
-            5
-        }
-    };
-    spheres[3] = (Object){
-        float3(-5, 5, 15),
-        OBJ_SPHERE, .sphere = {
-            5
-        }
-    };
-    spheres[4] = (Object){
-        float3(0, 0, 15),
-        OBJ_SPHERE, .sphere = {
-            2
-        }
-    };
     write_imagef(image, (int2){
         x_coord,
         y_coord
     }, (float4)
     {
-        trace_ray(origin, dir, spheres, 5, 5000, 1, NULL), 1.0
+        trace_ray(origin, dir, objects, objcount, 5000, 1, NULL), 1.0
     }
     );
 }
