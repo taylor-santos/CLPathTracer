@@ -18,4 +18,7 @@ vector_add_size(vector *vec_ptr, size_t size);
 size_t
 vector_size(vector);
 
+#define vector_length(vec, type) \
+    vector_size(vec) / sizeof(type)
+
 #endif//VECTOR_H

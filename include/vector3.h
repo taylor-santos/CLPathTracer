@@ -3,7 +3,7 @@
 
 #include <CL/cl_gl.h>
 
-typedef cl_float4 Vector3;
+typedef cl_double4 Vector3;
 #define Vector3(x, y, z) (Vector3){ {x, y, z, 0} }
 #define vec_x(v) (v).s[0]
 #define vec_y(v) (v).s[1]

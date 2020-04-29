@@ -51,9 +51,9 @@ vec_subtract(Vector3 a, Vector3 b) {
 
 Vector3
 vec_cross(Vector3 a, Vector3 b) {
-    float x = vec_y(a) * vec_z(b) - vec_z(a) * vec_y(b);
-    float y = vec_z(a) * vec_x(b) - vec_x(a) * vec_z(b);
-    float z = vec_x(a) * vec_y(b) - vec_y(a) * vec_x(b);
+    double x = vec_y(a) * vec_z(b) - vec_z(a) * vec_y(b);
+    double y = vec_z(a) * vec_x(b) - vec_x(a) * vec_z(b);
+    double z = vec_x(a) * vec_y(b) - vec_y(a) * vec_x(b);
     return Vector3(x, y, z);
 }
 

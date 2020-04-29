@@ -6,13 +6,13 @@
 typedef struct Object Object;
 
 struct __attribute__ ((packed)) Object {
-    cl_float3 position;
+    cl_double3 position;
     enum {
         OBJ_SPHERE
     } type;
     union {
         struct {
-            cl_float radius;
+            cl_double radius;
         } sphere;
     };
 };

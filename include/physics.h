@@ -5,8 +5,13 @@
 
 void
 AddPhysObject(Vector3 *position, Vector3 *velocity);
+
+void
+AddPhysPtr(void *pos_base, void *pos_ptr, void *vel_base, void *vel_ptr);
+
 void
 PhysStep(double stepSize);
+
 void
 PhysTerminate(void);
 

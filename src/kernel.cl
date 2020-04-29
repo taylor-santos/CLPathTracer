@@ -1,53 +1,53 @@
-#define float3(x, y, z) (float3){x, y, z}
-#define float4(x, y, z, w) (float4){x, y, z, w}
+#define double3(x, y, z) (double3){x, y, z}
+#define double4(x, y, z, w) (double4){x, y, z, w}
 
-typedef float4 matrix[4];
+typedef double4 matrix[4];
 
 typedef struct __attribute__ ((packed)) Object {
-    float3 position;
+    double3 position;
     enum {
         OBJ_SPHERE
     } type;
     union {
         struct {
-            float radius;
+            double radius;
         } sphere;
     };
 } Object;
 
 typedef struct Hit {
-    float dist;
+    double dist;
     __global Object *obj;
 } Hit;
 
-float3
-mul(const matrix M, float3 X) {
-    return float3(dot(M[0].xyz, X) + M[0].w,
+double3
+mul(const matrix M, double3 X) {
+    return double3(dot(M[0].xyz, X) + M[0].w,
         dot(M[1].xyz, X) + M[1].w,
         dot(M[2].xyz, X) + M[2].w) / (dot(M[3].xyz, X) + M[3].w);
 }
 
-float
-mod(float a, float b) {
+double
+mod(double a, double b) {
     return fmod(fmod(a, b) + b, b);
 }
 
-inline bool
-solveQuadratic(float a, float b, float c, float *x0, float *x1) {
-    float discr = b * b - 4 * a * c;
+bool
+solveQuadratic(double a, double b, double c, double *x0, double *x1) {
+    double discr = b * b - 4 * a * c;
     if (discr < 0) {
         return false;
     } else if (discr == 0) {
         *x0 = *x1 = -0.5 * b / a;
     } else {
-        float q = (b > 0)
+        double q = (b > 0)
             ? -0.5 * (b + sqrt(discr))
             : -0.5 * (b - sqrt(discr));
         *x0 = q / a;
         *x1 = c / q;
     }
     if (*x0 > *x1) {
-        float tmp = *x0;
+        double tmp = *x0;
         *x0 = *x1;
         *x1 = tmp;
     }
@@ -56,18 +56,18 @@ solveQuadratic(float a, float b, float c, float *x0, float *x1) {
 }
 
 bool
-hit_sphere(float3 center, float radius2, float3 start, float3 dir, float *t) {
-    float t0, t1;
-    float3 L = start - center;
-    float a = dot(dir, dir);
-    float b = 2 * dot(dir, L);
-    float c = dot(L, L) - radius2;
-    //if (c <= 0) return false;
+hit_sphere(double3 center, double radius2, double3 start, double3 dir, double *t) {
+    double t0, t1;
+    double3 L = start - center;
+    double a = dot(dir, dir);
+    double b = 2 * dot(dir, L);
+    double c = dot(L, L) - radius2;
+    if (c <= 0) return false;
     if (!solveQuadratic(a, b, c, &t0, &t1)) {
         return false;
     }
     if (t0 > t1) {
-        float tmp = t0;
+        double tmp = t0;
         t0 = t1;
         t1 = tmp;
     }
@@ -82,14 +82,14 @@ hit_sphere(float3 center, float radius2, float3 start, float3 dir, float *t) {
 }
 
 float3
-trace_ray(float3 start,
-        float3 dir,
+trace_ray(double3 start,
+        double3 dir,
         global Object *objects,
         int objcount,
         int depth,
-        float str,
+        double str,
         global Object *ignore) {
-    if (depth == 0) {
+    if (str < 0.01) {
         return 0;
     }
     Hit minHit;
@@ -99,7 +99,7 @@ trace_ray(float3 start,
             continue;
         }
         Object obj = objects[i];
-        float dist;
+        double dist;
         switch (obj.type) {
             case OBJ_SPHERE:
                 if (hit_sphere(obj.position,
@@ -116,8 +116,8 @@ trace_ray(float3 start,
         }
     }
     if (didHit) {
-        float3 pos = start + minHit.dist * dir;
-        float3 normal = normalize(pos - minHit.obj->position);
+        double3 pos = start + minHit.dist * dir;
+        double3 normal = normalize(pos - minHit.obj->position);
         dir = dir - 2 * dot(dir, normal) * normal;
         start = pos;
         return trace_ray(start,
@@ -125,16 +125,16 @@ trace_ray(float3 start,
             objects,
             objcount,
             depth - 1,
-            str * 1,
+            str * 0.9,
             minHit.obj);
     }
 
-    return str * (dir + 1) / 2;
+    return convert_float3(str * (dir + 1) / 2);
 }
 
-__kernel void
-render(__write_only image2d_t image,
-        __global float4 cam[4],
+kernel void
+render(write_only image2d_t image,
+        global double4 cam[4],
         global struct Object *objects,
         int objcount) {
     const uint x_coord = get_global_id(0);
@@ -142,19 +142,19 @@ render(__write_only image2d_t image,
     const uint resX = get_global_size(0);
     const uint resY = get_global_size(1);
 
-    const float3 origin =
-        float3(cam[0].z / cam[3].z, cam[1].z / cam[3].z, cam[2].z / cam[3].z);
-    const float3 ncp = mul(cam,
-        float3(x_coord - (float)resX / 2, y_coord - (float)resY / 2, -1));
-    const float3 fcp = mul(cam,
-        float3(x_coord - (float)resX / 2, y_coord - (float)resY / 2, 1));
-    const float3 dir = normalize((fcp - ncp).xyz);
+    const double3 origin =
+        double3(cam[0].z / cam[3].z, cam[1].z / cam[3].z, cam[2].z / cam[3].z);
+    const double3 ncp = mul(cam,
+        double3(x_coord - (double)resX / 2, y_coord - (double)resY / 2, -1));
+    const double3 fcp = mul(cam,
+        double3(x_coord - (double)resX / 2, y_coord - (double)resY / 2, 1));
+    const double3 dir = normalize((fcp - ncp).xyz);
     write_imagef(image, (int2){
         x_coord,
         y_coord
     }, (float4)
     {
-        trace_ray(origin, dir, objects, objcount, 5000, 1, NULL), 1.0
+        trace_ray(origin, dir, objects, objcount, 500, 1, NULL), 1.0
     }
     );
 }

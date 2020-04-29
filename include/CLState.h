@@ -16,7 +16,7 @@ CLTerminate(void);
 void
 CLSetCameraMatrix(Matrix matrix);
 void
-CLSetObjects(Object *objects, size_t size);
+CLSetObjects(Object *vec_objects, size_t size);
 void
 CLDeleteImage(void);
 void

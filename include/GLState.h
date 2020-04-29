@@ -13,7 +13,7 @@ GLGetWindowSize(int *x, int *y);
 void
 GLSetCameraMatrix(Matrix matrix);
 void
-GLSetObjects(Object *objects, size_t size);
+GLSetObjects(Object *vec_objects, size_t size);
 void
 GLRegisterKey(int key, GLFWkeyfun function);
 void

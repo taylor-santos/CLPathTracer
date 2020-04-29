@@ -6,7 +6,7 @@
 typedef struct Matrix Matrix;
 
 struct Matrix {
-    cl_float4 rows[4];
+    cl_double4 rows[4];
 };
 
 #define Matrix(\

@@ -78,8 +78,8 @@ GLSetCameraMatrix(Matrix matrix) {
 }
 
 void
-GLSetObjects(Object *objects, size_t size) {
-    CLSetObjects(objects, size);
+GLSetObjects(Object *vec_objects, size_t size) {
+    CLSetObjects(vec_objects, size);
 }
 
 int

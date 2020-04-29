@@ -7,6 +7,13 @@
 #include "camera.h"
 #include "CLHandler.h"
 #include "object.h"
+#include "vector.h"
+
+typedef struct KernelArg {
+    size_t size;
+    void *arg_ptr;
+    unsigned int is_ptr : 1;
+} KernelArg;
 
 static struct {
     cl_platform_id platform;
@@ -19,6 +26,7 @@ static struct {
     cl_mem matrix;
     cl_mem objects;
     cl_int objcount;
+    KernelArg *vec_args;
 } State;
 
 void
@@ -42,7 +50,6 @@ CLCreateImage(GLuint texture) {
 static void
 update_image(cl_command_queue queue, cl_mem *image, cl_kernel kernel) {
     HANDLE_ERR(clEnqueueAcquireGLObjects(queue, 1, image, 0, 0, NULL));
-    clSetKernelArg(kernel, 0, sizeof(*image), image);
 }
 
 void
@@ -59,8 +66,14 @@ CLSetCameraMatrix(Matrix matrix) {
 }
 
 static void
-set_arg(cl_kernel kernel, int index, size_t size, void *data) {
-    HANDLE_ERR(clSetKernelArg(kernel, index, size, data));
+update_args(cl_kernel kernel) {
+    size_t count = vector_size(State.vec_args) / sizeof(KernelArg);
+    for (size_t i = 0; i < count; i++) {
+        HANDLE_ERR(clSetKernelArg(kernel,
+            i,
+            State.vec_args[i].size,
+            State.vec_args[i].arg_ptr));
+    }
 }
 
 static void
@@ -69,14 +82,12 @@ resize_object_buffer(size_t size) {
     State.objects =
         clCreateBuffer(State.context, CL_MEM_READ_ONLY, size, NULL, &err);
     HANDLE_ERR(err);
-    set_arg(State.kernel, 2, sizeof(cl_mem), &State.objects);
     State.objcount = size / sizeof(Object);
-    set_arg(State.kernel, 3, sizeof(cl_int), &State.objcount);
 }
 
 void
-CLSetObjects(Object *objects, size_t size) {
-    if (size / sizeof(Object) != State.objcount) {
+CLSetObjects(Object *vec_objects, size_t size) {
+    if (size / sizeof(Object) != (size_t)State.objcount) {
         resize_object_buffer(size);
     }
     if (size == 0) {
@@ -87,7 +98,7 @@ CLSetObjects(Object *objects, size_t size) {
         CL_TRUE,
         0,
         size,
-        objects,
+        vec_objects,
         0,
         NULL,
         NULL));
@@ -97,6 +108,7 @@ void
 CLExecute(int width, int height) {
     glFinish();
     update_image(State.queue, &State.image, State.kernel);
+    update_args(State.kernel);
     CLEnqueueKernel(2, (size_t[]){
         width,
         height
@@ -134,7 +146,25 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
     State.queue = CLCreateQueue(State.context, State.device);
     State.kernel = CLCreateKernel(kernel_name, State.program);
     State.matrix = create_buffer(State.context, sizeof(Matrix));
-    set_arg(State.kernel, 1, sizeof(cl_mem), &State.matrix);
-    set_arg(State.kernel, 2, sizeof(cl_mem), &State.objects);
-    set_arg(State.kernel, 3, sizeof(cl_int), &State.objcount);
+    State.vec_args = new_vector();
+    vector_append(State.vec_args, KernelArg, ((KernelArg){
+        sizeof(cl_mem),
+        &State.image,
+        0
+    }));
+    vector_append(State.vec_args, KernelArg, ((KernelArg){
+        sizeof(cl_mem),
+        &State.matrix,
+        0
+    }));
+    vector_append(State.vec_args, KernelArg, ((KernelArg){
+        sizeof(cl_mem),
+        &State.objects,
+        0
+    }));
+    vector_append(State.vec_args, KernelArg, ((KernelArg){
+        sizeof(cl_int),
+        &State.objcount,
+        1
+    }));
 }
