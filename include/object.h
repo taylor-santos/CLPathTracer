@@ -17,4 +17,6 @@ struct __attribute__ ((packed)) Object {
     };
 };
 
+#define Object(position, type, object) ((Object){ position, type, object })
+
 #endif//OBJECT_H

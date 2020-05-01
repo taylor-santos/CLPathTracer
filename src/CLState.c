@@ -12,8 +12,10 @@
 typedef struct KernelArg {
     size_t size;
     void *arg_ptr;
-    unsigned int is_ptr : 1;
+    unsigned int is_ptr: 1;
 } KernelArg;
+
+#define KernelArg(size, arg_ptr, is_ptr) ((KernelArg){ size, arg_ptr, is_ptr })
 
 static struct {
     cl_platform_id platform;
@@ -147,24 +149,16 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
     State.kernel = CLCreateKernel(kernel_name, State.program);
     State.matrix = create_buffer(State.context, sizeof(Matrix));
     State.vec_args = new_vector();
-    vector_append(State.vec_args, KernelArg, ((KernelArg){
-        sizeof(cl_mem),
-        &State.image,
-        0
-    }));
-    vector_append(State.vec_args, KernelArg, ((KernelArg){
-        sizeof(cl_mem),
-        &State.matrix,
-        0
-    }));
-    vector_append(State.vec_args, KernelArg, ((KernelArg){
-        sizeof(cl_mem),
-        &State.objects,
-        0
-    }));
-    vector_append(State.vec_args, KernelArg, ((KernelArg){
-        sizeof(cl_int),
-        &State.objcount,
-        1
-    }));
+    vector_append(State.vec_args, KernelArg(
+        sizeof(cl_mem), &State.image, 0
+    ));
+    vector_append(State.vec_args, KernelArg(
+        sizeof(cl_mem), &State.matrix, 0
+    ));
+    vector_append(State.vec_args, KernelArg(
+        sizeof(cl_mem), &State.objects, 0
+    ));
+    vector_append(State.vec_args, KernelArg(
+        sizeof(cl_int), &State.objcount, 1
+    ));
 }

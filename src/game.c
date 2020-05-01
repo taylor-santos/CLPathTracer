@@ -41,7 +41,7 @@ static struct {
     } moveKey;
     Camera camera;
     Vector3 camVel;
-} State, *stptr = &State;
+} State/*, *stptr = &State*/;
 static Object *vec_objects;
 static int prevScreenPos[2], prevScreenSize[2];
 
@@ -211,25 +211,21 @@ StartGameLoop(void) {
     double speed;
     Vector3 up, right, forward;
     while (GLRender()) {
-        /*
-        size_t objcount = vector_length(vec_objects, Object);
+        size_t objcount = vector_length(vec_objects);
         if (objcount < State.time * 10) {
             double t = (double)objcount / 2;
-            vector_append(vec_objects, Object, ((Object){
-                Vector3(t, cos(t) * 10, 15 + sin(t) * 10),
-                OBJ_SPHERE, .sphere = {
-                    1
-                }
-            }));
+            vector_append(vec_objects,
+                Object(Vector3(t, cos(t) * 10, 15 + sin(t) * 10),
+                    OBJ_SPHERE,.sphere = { 1 }
+            ));
             /*
             // Match every sphere's velocity to the camera velocity every frame
             AddPhysPtr(&vec_objects,
                 &vec_objects[objcount].position,
                 &stptr,
                 &State.camVel);
-            *//*
+            */
         }
-        */
         speed = State.moveKey.sprint
             ? GameProperties.sprintSpeed
             : GameProperties.movementSpeed;
@@ -272,16 +268,4 @@ GameInit(const char *kernel_filename, const char *kernel_name) {
     };
     AddPhysObject(&State.camera.Position, &State.camVel);
     vec_objects = new_vector();
-    for (int x = 0; x < 2; x++) {
-        for (int y = 0; y < 2; y++) {
-            for (int z = 0; z < 2; z++) {
-                vector_append(vec_objects, Object, ((Object){
-                    Vector3(-5 + x * 10, -5 + y * 10, -5 + z * 10),
-                    OBJ_SPHERE, .sphere = {
-                        5
-                    }
-                }));
-            }
-        }
-    }
 }

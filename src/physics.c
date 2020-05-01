@@ -27,7 +27,7 @@ AddPhysObject(Vector3 *position, Vector3 *velocity) {
     if (objects == NULL) {
         objects = new_vector();
     }
-    vector_append(objects, PhysObject, ((PhysObject){
+    vector_append(objects, ((PhysObject){
         position,
         velocity
     }));
@@ -41,7 +41,7 @@ AddPhysPtr(void *pos_base, void *pos_ptr, void *vel_base, void *vel_ptr) {
     }
     ptrdiff_t pos_diff = (char *)pos_ptr - *(char **)pos_base;
     ptrdiff_t vel_diff = (char *)vel_ptr - *(char **)vel_base;
-    vector_append(ptrs, PhysPtr, ((PhysPtr){
+    vector_append(ptrs, ((PhysPtr){
         pos_base,
         pos_diff,
         vel_base,
@@ -69,5 +69,6 @@ PhysStep(double stepSize) {
 
 void
 PhysTerminate(void) {
-    free(objects);
+    delete_vector(objects);
+    delete_vector(ptrs);
 }

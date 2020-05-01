@@ -4,6 +4,8 @@
 
 typedef struct data data;
 
+size_t VEC_INDEX;
+
 struct data {
     size_t capacity;
     size_t length;
@@ -32,6 +34,9 @@ new_vector(void) {
 
 void
 delete_vector(void *vector) {
+    if (vector == NULL) {
+        return;
+    }
     free(get_vector(vector));
 }
 
@@ -45,16 +50,15 @@ vector_realloc(data **vec_ptr, size_t size) {
     (*vec_ptr)->capacity = size;
 }
 
-void *
-vector_add_size(void **vec_ptr, size_t size) {
+size_t
+vector_grow(void **vec_ptr, size_t size) {
     data *vector = get_vector(*vec_ptr);
     if (vector->length + size > vector->capacity) {
-        vector_realloc(&vector, vector->length + size);
+        vector_realloc(&vector, vector->length + size * 4);
     }
-    void *ret = &vector->data[vector->length];
     vector->length += size;
     *vec_ptr = vector->data;
-    return ret;
+    return vector->length / size - 1;
 }
 
 size_t
