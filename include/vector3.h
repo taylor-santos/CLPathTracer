@@ -3,8 +3,16 @@
 
 #include <CL/cl_gl.h>
 
-typedef cl_double4 Vector3;
-#define Vector3(x, y, z) (Vector3){ {x, y, z, 0} }
+#define VEC_TYPE float
+
+#define CONCAT2(a, b, c) a ## b ## c
+#define CONCAT(a, b, c) CONCAT2(a, b, c)
+#define VEC(dim) CONCAT(cl_, VEC_TYPE, dim)
+
+typedef VEC(3) Vector3;
+typedef VEC(4) Vector4;
+
+#define Vector3(x, y, z) (Vector3){ {x, y, z} }
 #define vec_x(v) (v).s[0]
 #define vec_y(v) (v).s[1]
 #define vec_z(v) (v).s[2]
@@ -13,11 +21,11 @@ typedef cl_double4 Vector3;
 #define Vector3_forward Vector3(0, 0, 1)
 #define Vector3_up Vector3(0, 1, 0)
 
-double
+VEC_TYPE
 vec_dot(Vector3, Vector3);
-double
+VEC_TYPE
 vec_length_squared(Vector3);
-double
+VEC_TYPE
 vec_length(Vector3);
 Vector3
 vec_normalized(Vector3);
@@ -34,8 +42,8 @@ vec_negated(Vector3);
 Vector3 *
 vec_negate(Vector3 *);
 Vector3
-vec_scaled(Vector3, double);
+vec_scaled(Vector3, VEC_TYPE);
 Vector3 *
-vec_scale(Vector3 *, double);
+vec_scale(Vector3 *, VEC_TYPE);
 
 #endif//VECTOR3_H

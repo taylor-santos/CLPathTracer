@@ -82,6 +82,11 @@ GLSetObjects(Object *vec_objects, size_t size) {
     CLSetObjects(vec_objects, size);
 }
 
+void
+GLSetMeshes(Model **models) {
+    CLSetMeshes(models);
+}
+
 int
 GLRender(void) {
     // Renders the next frame to screen, then returns 1 if the window is

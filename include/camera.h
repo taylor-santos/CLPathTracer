@@ -2,12 +2,11 @@
 #define CAMERA_H
 
 #include "matrix.h"
-#include "vector3.h"
 
 typedef struct Camera {
-    double Near;
-    double Far;
-    double FOV;
+    VEC_TYPE Near;
+    VEC_TYPE Far;
+    VEC_TYPE FOV;
     Vector3 Position;
     Vector3 Forward;
 } Camera;

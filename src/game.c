@@ -43,6 +43,7 @@ static struct {
     Vector3 camVel;
 } State/*, *stptr = &State*/;
 static Object *vec_objects;
+static Model **vec_models;
 static int prevScreenPos[2], prevScreenSize[2];
 
 double
@@ -211,21 +212,6 @@ StartGameLoop(void) {
     double speed;
     Vector3 up, right, forward;
     while (GLRender()) {
-        size_t objcount = vector_length(vec_objects);
-        if (objcount < State.time * 10) {
-            double t = (double)objcount / 2;
-            vector_append(vec_objects,
-                Object(Vector3(t, cos(t) * 10, 15 + sin(t) * 10),
-                    OBJ_SPHERE,.sphere = { 1 }
-            ));
-            /*
-            // Match every sphere's velocity to the camera velocity every frame
-            AddPhysPtr(&vec_objects,
-                &vec_objects[objcount].position,
-                &stptr,
-                &State.camVel);
-            */
-        }
         speed = State.moveKey.sprint
             ? GameProperties.sprintSpeed
             : GameProperties.movementSpeed;
@@ -239,12 +225,15 @@ StartGameLoop(void) {
         State.camVel = vec_scaled(vec_add(right, forward), speed);
         update_camera();
         update_objects();
+
         PhysStep(update_time());
     }
 }
 
 void
-GameInit(const char *kernel_filename, const char *kernel_name) {
+GameInit(const char *kernel_filename,
+    const char *kernel_name,
+    const char **models) {
     GLInit(kernel_filename, kernel_name);
     GLRegisterKey(GLFW_KEY_ESCAPE, close_window);
     GLRegisterKey(GLFW_KEY_F, toggle_fullscreen);
@@ -268,4 +257,12 @@ GameInit(const char *kernel_filename, const char *kernel_name) {
     };
     AddPhysObject(&State.camera.Position, &State.camVel);
     vec_objects = new_vector();
+    size_t model_count = vector_length(models);
+    vec_models = new_vector();
+    for (size_t i = 0; i < model_count; i++) {
+        Model *model = new_Model();
+        LoadModel(models[i], model);
+        vector_append(vec_models, model);
+    }
+    GLSetMeshes(vec_models);
 }

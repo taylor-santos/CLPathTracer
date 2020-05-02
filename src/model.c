@@ -7,25 +7,45 @@
 #include "obj_scanner.h"
 
 struct Model {
-    cl_double4 *verts;
+    Vector4 *verts;
     cl_int3 *tris;
     size_t vert_count;
     size_t tri_count;
 };
 
-Model
+Model *
 new_Model(void) {
-    return (Model){
+    Model *model = malloc(sizeof(*model));
+    if (model == NULL) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    *model = (Model){
         new_vector(),
         new_vector(),
         0,
         0
     };
+    return model;
 }
 
 void
-append_Model_vert(Model *model, cl_double4 vert) {
-    vector_append(model->verts, vert);
+delete_Model(Model *model) {
+    delete_vector(model->verts);
+    delete_vector(model->tris);
+    free(model);
+}
+
+void
+append_Model_vert(Model *model, Vector4 vert) {
+    vector_append(model->verts, ((Vector4){
+        {
+            (float)vert.s[0],
+            (float)vert.s[1],
+            (float)vert.s[2],
+            (float)vert.s[3]
+        }
+    }));
     model->vert_count++;
 }
 
@@ -33,6 +53,16 @@ void
 append_Model_tri(Model *model, cl_int3 tri) {
     vector_append(model->tris, tri);
     model->tri_count++;
+}
+
+Vector4 *
+Model_verts(Model *model) {
+    return model->verts;
+}
+
+cl_int3 *
+Model_tris(Model *model) {
+    return model->tris;
 }
 
 enum model_type {
@@ -63,7 +93,7 @@ get_filetype(const char *filename) {
 }
 
 static int
-parse_OBJ(const char *filename) {
+parse_OBJ(const char *filename, Model *model) {
     yyscan_t scanner;
     YY_BUFFER_STATE state;
     FILE *file = fopen(filename, "r");
@@ -78,22 +108,14 @@ parse_OBJ(const char *filename) {
     }
     state = yy_create_buffer(file, YY_BUF_SIZE, scanner);
     yy_switch_to_buffer(state, scanner);
-    clock_t start = clock();
-    Model model = new_Model();
-    if (yyparse(&model, filename, scanner)) {
-        return 1;
-    }
-    clock_t end = clock();
-    printf("%fs\n", ((double)(end - start)) / CLOCKS_PER_SEC);
-    return 0;
+    return yyparse(model, filename, scanner);
 }
 
 int
-LoadModel(const char *filename) {
-
+LoadModel(const char *filename, Model *model) {
     switch (get_filetype(filename)) {
         case MODEL_OBJ:
-            return parse_OBJ(filename);
+            return parse_OBJ(filename, model);
         default:
             fprintf(stderr, "Unrecognized filetype: \"%s\"\n", filename);
             fprintf(stderr, "Supported filetypes are: ");

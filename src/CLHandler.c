@@ -272,6 +272,16 @@ CLCreateKernel(const char *kernel_name, cl_program program) {
     return kernel;
 }
 
+cl_mem
+CLCreateBuffer(cl_context context, size_t size) {
+    cl_mem buffer;
+    cl_int err;
+
+    buffer = clCreateBuffer(context, CL_MEM_READ_ONLY, size, NULL, &err);
+    HANDLE_ERR(err);
+    return buffer;
+}
+
 void
 CLEnqueueKernel(cl_uint dim,
     size_t *global_size,

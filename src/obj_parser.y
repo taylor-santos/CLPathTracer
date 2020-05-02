@@ -73,7 +73,7 @@
 
 %union {
     int ival;
-    double dval;
+    VEC_TYPE dval;
     char *sval;
     char **group;
     cl_int3 i3;
@@ -128,10 +128,10 @@ smooth
 
 vertex
     : V DOUBLE DOUBLE DOUBLE {
-        append_Model_vert(model, (cl_double4){ .s={$2, $3, $4, 1.0 } });
+        append_Model_vert(model, (Vector4){ .s={$2, $3, $4, 1.0 } });
     }
     | V DOUBLE DOUBLE DOUBLE DOUBLE {
-        append_Model_vert(model, (cl_double4){ .s={$2, $3, $4, $5 } });
+        append_Model_vert(model, (Vector4){ .s={$2, $3, $4, $5 } });
     }
 
 tex
@@ -146,12 +146,12 @@ polygon
     : triangle
     | polygon v_index {
         append_Model_tri(model, $1);
-        $$ = (cl_int3){ { $1.s[0], $1.s[2], $2.s[0] } };
+        $$ = (cl_int3){ { $1.s[0]-1, $1.s[2]-1, $2.s[0]-1 } };
     }
 
 triangle
     : F v_index v_index v_index {
-        $$ = (cl_int3){ { $2.s[0], $3.s[0], $4.s[0] } };
+        $$ = (cl_int3){ { $2.s[0]-1, $3.s[0]-1, $4.s[0]-1 } };
     }
 
 

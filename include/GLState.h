@@ -3,6 +3,7 @@
 
 #include "matrix.h"
 #include "object.h"
+#include "model.h"
 
 void
 GLInit(const char *kernel_filename, const char *kernel_name);
@@ -14,6 +15,8 @@ void
 GLSetCameraMatrix(Matrix matrix);
 void
 GLSetObjects(Object *vec_objects, size_t size);
+void
+GLSetMeshes(Model **models);
 void
 GLRegisterKey(int key, GLFWkeyfun function);
 void

@@ -8,6 +8,7 @@
 #include "CLHandler.h"
 #include "object.h"
 #include "vector.h"
+#include "model.h"
 
 typedef struct KernelArg {
     size_t size;
@@ -28,6 +29,10 @@ static struct {
     cl_mem matrix;
     cl_mem objects;
     cl_int objcount;
+    cl_mem verts;
+    cl_int vertcount;
+    cl_mem tris;
+    cl_int tricount;
     KernelArg *vec_args;
 } State;
 
@@ -79,18 +84,22 @@ update_args(cl_kernel kernel) {
 }
 
 static void
-resize_object_buffer(size_t size) {
-    cl_int err;
-    State.objects =
-        clCreateBuffer(State.context, CL_MEM_READ_ONLY, size, NULL, &err);
-    HANDLE_ERR(err);
-    State.objcount = size / sizeof(Object);
+resize_buffer(cl_mem *buffer, size_t size) {
+    if (*buffer != 0) {
+        HANDLE_ERR(clReleaseMemObject(*buffer));
+    }
+    if (size == 0) {
+        *buffer = 0;
+        return;
+    }
+    *buffer = CLCreateBuffer(State.context, size);
 }
 
 void
 CLSetObjects(Object *vec_objects, size_t size) {
     if (size / sizeof(Object) != (size_t)State.objcount) {
-        resize_object_buffer(size);
+        resize_buffer(&State.objects, size);
+        State.objcount = size / sizeof(Object);
     }
     if (size == 0) {
         return;
@@ -101,6 +110,44 @@ CLSetObjects(Object *vec_objects, size_t size) {
         0,
         size,
         vec_objects,
+        0,
+        NULL,
+        NULL));
+}
+
+void
+CLSetMeshes(Model **models) {
+    size_t model_count = vector_length(models);
+    if (model_count == 0) {
+        return;
+    }
+    Model *model = models[0];
+    Vector4 *verts = Model_verts(model);
+    cl_int3 *tris = Model_tris(model);
+    size_t vertcount = vector_length(verts), tricount = vector_length(tris);
+    if (vertcount != (size_t)State.vertcount) {
+        resize_buffer(&State.verts, vertcount * sizeof(*verts));
+        State.vertcount = vertcount;
+    }
+    if (tricount != (size_t)State.tricount) {
+        resize_buffer(&State.tris, tricount * sizeof(*tris));
+        State.tricount = tricount;
+    }
+    HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
+        State.verts,
+        CL_TRUE,
+        0,
+        vertcount * sizeof(*verts),
+        verts,
+        0,
+        NULL,
+        NULL));
+    HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
+        State.tris,
+        CL_TRUE,
+        0,
+        tricount * sizeof(*tris),
+        tris,
         0,
         NULL,
         NULL));
@@ -124,16 +171,6 @@ CLExecute(int width, int height) {
         NULL));
 }
 
-static cl_mem
-create_buffer(cl_context context, size_t size) {
-    cl_mem buffer;
-    cl_int err;
-
-    buffer = clCreateBuffer(context, CL_MEM_READ_ONLY, size, NULL, &err);
-    HANDLE_ERR(err);
-    return buffer;
-}
-
 void
 CLTerminate(void) {
 }
@@ -147,7 +184,7 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
         CLBuildProgram(kernel_filename, State.context, State.device);
     State.queue = CLCreateQueue(State.context, State.device);
     State.kernel = CLCreateKernel(kernel_name, State.program);
-    State.matrix = create_buffer(State.context, sizeof(Matrix));
+    State.matrix = CLCreateBuffer(State.context, sizeof(Matrix));
     State.vec_args = new_vector();
     vector_append(State.vec_args, KernelArg(
         sizeof(cl_mem), &State.image, 0
@@ -160,5 +197,17 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
     ));
     vector_append(State.vec_args, KernelArg(
         sizeof(cl_int), &State.objcount, 1
+    ));
+    vector_append(State.vec_args, KernelArg(
+        sizeof(cl_mem), &State.verts, 0
+    ));
+    vector_append(State.vec_args, KernelArg(
+        sizeof(cl_int), &State.vertcount, 1
+    ));
+    vector_append(State.vec_args, KernelArg(
+        sizeof(cl_mem), &State.tris, 0
+    ));
+    vector_append(State.vec_args, KernelArg(
+        sizeof(cl_int), &State.tricount, 1
     ));
 }
