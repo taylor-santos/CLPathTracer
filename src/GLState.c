@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <kd_tree.h>
 
 #include "CLState.h"
 #include "GLHandler.h"
@@ -83,7 +84,7 @@ GLSetObjects(Object *vec_objects, size_t size) {
 }
 
 void
-GLSetMeshes(Model **models) {
+GLSetMeshes(kd *models) {
     CLSetMeshes(models);
 }
 

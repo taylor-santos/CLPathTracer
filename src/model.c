@@ -11,6 +11,7 @@ struct Model {
     cl_int3 *tris;
     size_t vert_count;
     size_t tri_count;
+    Vector3 min, max;
 };
 
 Model *
@@ -24,7 +25,9 @@ new_Model(void) {
         new_vector(),
         new_vector(),
         0,
-        0
+        0,
+        Vector3_zero,
+        Vector3_zero
     };
     return model;
 }
@@ -47,6 +50,11 @@ append_Model_vert(Model *model, Vector4 vert) {
         }
     }));
     model->vert_count++;
+    if (model->vert_count == 1) {
+        model->min = model->max = vert;
+    }
+    model->min = vec_min(model->min, vert);
+    model->max = vec_max(model->max, vert);
 }
 
 void
@@ -63,6 +71,16 @@ Model_verts(Model *model) {
 cl_int3 *
 Model_tris(Model *model) {
     return model->tris;
+}
+
+Vector3
+Model_min(Model *model) {
+    return model->min;
+}
+
+Vector3
+Model_max(Model *model) {
+    return model->max;
 }
 
 enum model_type {

@@ -12,7 +12,7 @@ struct data {
     char data[];
 };
 
-data *
+static data *
 get_vector(void *vec) {
     data *data = vec;
     return &data[-1];
@@ -48,6 +48,17 @@ vector_realloc(data **vec_ptr, size_t size) {
         exit(EXIT_FAILURE);
     }
     (*vec_ptr)->capacity = size;
+}
+
+void
+vec_concat(void **v1_ptr, void *v2) {
+    data *vec1 = get_vector(*v1_ptr), *vec2 = get_vector(v2);
+    size_t s1 = vec1->length, s2 = vec2->length;
+    vector_realloc(&vec1, s1 + s2);
+    memcpy(vec1->data + s1, vec2->data, s2);
+    vec1->length = s1 + s2;
+    vec1->capacity = s1 + s2;
+    *v1_ptr = vec1->data;
 }
 
 size_t

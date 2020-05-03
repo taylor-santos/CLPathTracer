@@ -8,7 +8,7 @@
 #include "CLHandler.h"
 #include "object.h"
 #include "vector.h"
-#include "model.h"
+#include "kd_tree.h"
 
 typedef struct KernelArg {
     size_t size;
@@ -32,7 +32,9 @@ static struct {
     cl_mem verts;
     cl_int vertcount;
     cl_mem tris;
-    cl_int tricount;
+    size_t tricount;
+    cl_mem kdtree;
+    size_t treesize;
     KernelArg *vec_args;
 } State;
 
@@ -116,22 +118,28 @@ CLSetObjects(Object *vec_objects, size_t size) {
 }
 
 void
-CLSetMeshes(Model **models) {
+CLSetMeshes(kd *models) {
     size_t model_count = vector_length(models);
     if (model_count == 0) {
         return;
     }
-    Model *model = models[0];
-    Vector4 *verts = Model_verts(model);
-    cl_int3 *tris = Model_tris(model);
-    size_t vertcount = vector_length(verts), tricount = vector_length(tris);
+    kd model = models[0];
+    Vector4 *verts = model.vert_vec;
+    size_t vertcount = vector_length(verts);
     if (vertcount != (size_t)State.vertcount) {
         resize_buffer(&State.verts, vertcount * sizeof(*verts));
         State.vertcount = vertcount;
     }
+    cl_int3 *tris = model.tri_vec;
+    size_t tricount = vector_length(tris);
     if (tricount != (size_t)State.tricount) {
         resize_buffer(&State.tris, tricount * sizeof(*tris));
         State.tricount = tricount;
+    }
+    size_t treesize = vector_size(model.node_vec);
+    if (treesize != State.treesize) {
+        resize_buffer(&State.kdtree, treesize);
+        State.treesize = treesize;
     }
     HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
         State.verts,
@@ -148,6 +156,15 @@ CLSetMeshes(Model **models) {
         0,
         tricount * sizeof(*tris),
         tris,
+        0,
+        NULL,
+        NULL));
+    HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
+        State.kdtree,
+        CL_TRUE,
+        0,
+        treesize,
+        model.node_vec,
         0,
         NULL,
         NULL));
@@ -202,12 +219,9 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
         sizeof(cl_mem), &State.verts, 0
     ));
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_int), &State.vertcount, 1
-    ));
-    vector_append(State.vec_args, KernelArg(
         sizeof(cl_mem), &State.tris, 0
     ));
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_int), &State.tricount, 1
+        sizeof(cl_mem), &State.kdtree, 0
     ));
 }

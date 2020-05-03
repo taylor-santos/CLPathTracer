@@ -4,9 +4,9 @@
 #include "matrix.h"
 
 typedef struct Camera {
-    VEC_TYPE Near;
-    VEC_TYPE Far;
-    VEC_TYPE FOV;
+    vec_t Near;
+    vec_t Far;
+    vec_t FOV;
     Vector3 Position;
     Vector3 Forward;
 } Camera;

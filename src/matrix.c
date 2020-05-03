@@ -3,11 +3,11 @@
 #define index(M, i) M.rows[i / 4].s[i % 4]
 
 void
-mat_set(Matrix *mat, unsigned int n, unsigned int m, VEC_TYPE value) {
+mat_set(Matrix *mat, unsigned int n, unsigned int m, vec_t value) {
     mat->rows[m].s[n] = value;
 }
 
-VEC_TYPE
+vec_t
 mat_get(Matrix mat, unsigned int n, unsigned int m) {
     return mat.rows[m].s[n];
 }
@@ -37,7 +37,7 @@ mat_multiply(Matrix a, Matrix b) {
 }
 
 Matrix *
-mat_scale(Matrix *mat, VEC_TYPE factor) {
+mat_scale(Matrix *mat, vec_t factor) {
     for (int m = 0; m < 4; m++) {
         for (int n = 0; n < 4; n++) {
             mat->rows[m].s[n] *= factor;
@@ -47,13 +47,13 @@ mat_scale(Matrix *mat, VEC_TYPE factor) {
 }
 
 Matrix
-mat_scaled(Matrix mat, VEC_TYPE factor) {
+mat_scaled(Matrix mat, vec_t factor) {
     return *mat_scale(&mat, factor);
 }
 
 Matrix
 mat_inverse(Matrix m, int *err) {
-    VEC_TYPE det;
+    vec_t det;
     Matrix inv = Matrix(
     // First Row
         index(m, 5) * index(m, 10) * index(m, 15) -

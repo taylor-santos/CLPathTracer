@@ -24,17 +24,17 @@ struct Matrix {
         } }
 
 void
-mat_set(Matrix *, unsigned int n, unsigned int m, VEC_TYPE value);
-VEC_TYPE
+mat_set(Matrix *, unsigned int n, unsigned int m, vec_t value);
+vec_t
 mat_get(Matrix, unsigned int n, unsigned int m);
 Matrix
 mat_add(Matrix, Matrix);
 Matrix
 mat_multiply(Matrix, Matrix);
 Matrix
-mat_scaled(Matrix, VEC_TYPE);
+mat_scaled(Matrix, vec_t);
 Matrix *
-mat_scale(Matrix *, VEC_TYPE);
+mat_scale(Matrix *, vec_t);
 Matrix
 mat_inverse(Matrix, int *err);
 

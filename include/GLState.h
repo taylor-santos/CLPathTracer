@@ -4,6 +4,7 @@
 #include "matrix.h"
 #include "object.h"
 #include "model.h"
+#include "kd_tree.h"
 
 void
 GLInit(const char *kernel_filename, const char *kernel_name);
@@ -16,7 +17,7 @@ GLSetCameraMatrix(Matrix matrix);
 void
 GLSetObjects(Object *vec_objects, size_t size);
 void
-GLSetMeshes(Model **models);
+GLSetMeshes(kd *models);
 void
 GLRegisterKey(int key, GLFWkeyfun function);
 void

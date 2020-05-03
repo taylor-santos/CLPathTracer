@@ -8,7 +8,7 @@
 
 #include "matrix.h"
 #include "object.h"
-#include "model.h"
+#include "kd_tree.h"
 
 void
 CLInit(const char *kernel_filename, const char *kernel_name);
@@ -19,7 +19,7 @@ CLSetCameraMatrix(Matrix matrix);
 void
 CLSetObjects(Object *vec_objects, size_t size);
 void
-CLSetMeshes(Model **models);
+CLSetMeshes(kd *models);
 void
 CLDeleteImage(void);
 void

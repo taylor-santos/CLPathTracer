@@ -13,7 +13,7 @@ struct __attribute__ ((packed)) Object {
     } type;
     union {
         struct {
-            VEC_TYPE radius;
+            vec_t radius;
         } sphere;
     };
 };

@@ -1,13 +1,13 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <math.h>
-#include <stdio.h>
 
 #include "GLState.h"
 #include "camera.h"
 #include "physics.h"
 #include "object.h"
 #include "vector.h"
+#include "kd_tree.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -25,8 +25,8 @@ static struct {
         2,
         2
     },
-    5,
-    50
+    0.1,
+    1
 };
 static struct {
     double time;
@@ -43,7 +43,7 @@ static struct {
     Vector3 camVel;
 } State/*, *stptr = &State*/;
 static Object *vec_objects;
-static Model **vec_models;
+static kd *vec_models;
 static int prevScreenPos[2], prevScreenSize[2];
 
 double
@@ -252,7 +252,7 @@ GameInit(const char *kernel_filename,
         0.1,
         1,
         M_PI / 3,
-        Vector3_zero,
+        Vector3(0, 0.1, -0.2),
         Vector3_forward
     };
     AddPhysObject(&State.camera.Position, &State.camVel);
@@ -262,7 +262,8 @@ GameInit(const char *kernel_filename,
     for (size_t i = 0; i < model_count; i++) {
         Model *model = new_Model();
         LoadModel(models[i], model);
-        vector_append(vec_models, model);
+        kd tree = build_kd(model);
+        vector_append(vec_models, tree);
     }
     GLSetMeshes(vec_models);
 }

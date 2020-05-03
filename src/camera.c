@@ -23,12 +23,12 @@ camera_transform(Camera cam) {
 static Matrix
 projection_transform(Camera cam) {
     Matrix mat = { 0 };
-    VEC_TYPE c, near, far, fov;
+    vec_t c, near, far, fov;
 
     near = cam.Near;
     far = cam.Far;
     fov = cam.FOV;
-    c = 1 / (VEC_TYPE)tan((double)fov / 2);
+    c = 1 / (vec_t)tan((double)fov / 2);
     mat_set(&mat, 0, 0, c);
     mat_set(&mat, 1, 1, c);
     mat_set(&mat, 2, 2, -(far + near) / (near - far));
@@ -40,8 +40,8 @@ projection_transform(Camera cam) {
 static Matrix
 device_transform(int height) {
     Matrix ret = { 0 };
-    mat_set(&ret, 0, 0, (VEC_TYPE)height / 2);
-    mat_set(&ret, 1, 1, (VEC_TYPE)height / 2);
+    mat_set(&ret, 0, 0, (vec_t)height / 2);
+    mat_set(&ret, 1, 1, (vec_t)height / 2);
     mat_set(&ret, 2, 2, 1);
     mat_set(&ret, 3, 3, 1);
     return ret;

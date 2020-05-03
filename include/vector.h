@@ -16,7 +16,9 @@ extern size_t VEC_INDEX;
         (vec)[VEC_INDEX] = (item) \
     )
 #define vector_length(vec) (vector_size(vec) / sizeof(*vec))
-
+#define vector_concat(v1, v2) vec_concat((void**)&v1, v2)
+void
+vec_concat(vector v1_ptr, vector v2);
 vector
 new_vector(void);
 void

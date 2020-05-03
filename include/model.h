@@ -19,6 +19,10 @@ Vector4 *
 Model_verts(Model *);
 cl_int3 *
 Model_tris(Model *);
+Vector3
+Model_min(Model *);
+Vector3
+Model_max(Model *);
 int
 LoadModel(const char *filename, Model *model);
 

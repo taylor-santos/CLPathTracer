@@ -73,7 +73,7 @@
 
 %union {
     int ival;
-    VEC_TYPE dval;
+    vec_t dval;
     char *sval;
     char **group;
     cl_int3 i3;
