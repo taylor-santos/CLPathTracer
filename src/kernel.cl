@@ -3,18 +3,20 @@
 #define CONCAT2(a, b) a ## b
 #define CONCAT(a, b) CONCAT2(a, b)
 
+#define vec2 CONCAT(vec_t, 2)
 #define vec3 CONCAT(vec_t, 3)
 #define vec4 CONCAT(vec_t, 4)
 #define color float3
 #define color4 float4
 
+#define new_vec2(x, y) (vec2){x, y}
 #define new_vec3(x, y, z) (vec3){x, y, z}
 #define new_vec4(x, y, z, w) (vec4){x, y, z, w}
 #define new_color(x, y, z) (float3){x, y, z}
 #define convert_color(vec) convert_float3(vec)
 #define convert_vec3(vec) CONCAT(convert_, vec3)(vec)
 
-#define EPS 0.000001
+#define EPS 0.000000000000
 
 typedef vec4 matrix[4];
 
@@ -53,8 +55,7 @@ typedef struct __attribute__ ((packed)) kdnode {
         struct {
             vec_t value;
             KD_AXIS axis;
-            int low_child;
-            int high_child;
+            int children[2];
         } split;
         struct {
             int tris;
@@ -138,12 +139,34 @@ hit_AABB(vec3 bounds[],
         *tmin = tzmin;
         *near = 4 + r.sign.z;
     }
-    if (*tmin < 0) return false;
     if (tzmax < *tmax) {
         *tmax = tzmax;
         *far = 5 - r.sign.z;
     }
-    return true;
+    return *tmax > 0;
+}
+
+void
+hit_AABB2(vec3 bounds[], Ray r, vec_t *tmax, KD_SIDE *far) {
+    vec_t tymin, tymax, tzmin, tzmax;
+
+    *far = 1 - r.sign.x;
+    *tmax = (bounds[1 - r.sign.x].x - r.orig.x) * r.invdir.x;
+    tymin = (bounds[r.sign.y].y - r.orig.y) * r.invdir.y;
+    tymax = (bounds[1 - r.sign.y].y - r.orig.y) * r.invdir.y;
+
+    if (tymax < *tmax) {
+        *tmax = tymax;
+        *far = 3 - r.sign.y;
+    }
+
+    tzmin = (bounds[r.sign.z].z - r.orig.z) * r.invdir.z;
+    tzmax = (bounds[1 - r.sign.z].z - r.orig.z) * r.invdir.z;
+
+    if (tzmax < *tmax) {
+        *tmax = tzmax;
+        *far = 5 - r.sign.z;
+    }
 }
 
 bool
@@ -197,11 +220,11 @@ hit_sphere(vec3 center, vec_t radius2, vec3 start, vec3 dir, vec_t *t) {
 
 bool
 hit_triangle(vec3 v0,
-    vec3 v1,
-    vec3 v2,
-    vec3 start,
-    vec3 dir,
-    vec_t *t) {
+        vec3 v1,
+        vec3 v2,
+        vec3 start,
+        vec3 dir,
+        vec_t *t) {
     vec3 v0v1 = v1 - v0;
     vec3 v0v2 = v2 - v0;
     vec3 pvec = cross(dir, v0v2);
@@ -218,27 +241,197 @@ hit_triangle(vec3 v0,
     return *t > 0;
 }
 
-KD_SIDE
-oppSide(Ray scaledR, KD_SIDE near, vec3 *pos) {
-    vec3 d = scaledR.invdir * (1 - convert_vec3(scaledR.sign) - scaledR.orig);
-    if (d.x < d.y) {
-        if (d.x < d.z) {
-            *pos = scaledR.orig + scaledR.dir * d.x;
-            return 1 - scaledR.sign.x;
-        } else {
-            *pos = scaledR.orig + scaledR.dir * d.z;
-            return 5 - scaledR.sign.z;
-        }
-    } else if (d.y < d.z) {
-        *pos = scaledR.orig + scaledR.dir * d.y;
-        return 3 - scaledR.sign.y;
-    } else {
-        *pos = scaledR.orig + scaledR.dir * d.z;
-        return 5 - scaledR.sign.z;
+int
+get_leaf(global kdnode *kd_tree, int index, vec3 point) {
+    kdnode curr = kd_tree[index];
+    if (curr.type == KD_LEAF) return index;
+    vec_t v;
+    switch(curr.split.axis) {
+        case KD_X:
+            v = (-curr.min.x + point.x) / (curr.max.x - curr.min.x);
+            break;
+        case KD_Y:
+            v = (-curr.min.y + point.y) / (curr.max.y - curr.min.y);
+            break;
+        case KD_Z:
+            v = (-curr.min.z + point.z) / (curr.max.x - curr.min.z);
+            break;
     }
+    if (v < curr.split.value) {
+        return get_leaf(kd_tree, curr.split.children[0], point);
+    }
+    return get_leaf(kd_tree, curr.split.children[1], point);
 }
 
-#define MAX_ITER 400
+void
+print_vec2(vec2 vec) {
+    printf("{%f, %f}", vec.x, vec.y);
+}
+
+void
+print_vec3(vec3 vec) {
+    printf("{%f, %f, %f}", vec.x, vec.y, vec.z);
+}
+/*
+bool
+traverse_kd(
+        int index,
+        vec3 p1,
+        vec3 p2,
+        vec3 dir,
+        vec3 invDir,
+        KD_SIDE near,
+        KD_SIDE far,
+        global vec4 *verts,
+        global int3 *tris,
+        global kdnode *kd_tree,
+        color *col,
+        float *str,
+        bool isPrinter) {
+    if (kd_tree[index].type == KD_LEAF) {
+        return true;
+    }
+    vec_t d, v = kd_tree[index].split.value;
+    int index1, index2;
+    KD_SIDE side;
+    bool l1, l2;
+    vec3 dir1 = dir, dir2 = dir;
+    switch (kd_tree[index].split.axis) {
+        case KD_X:
+            d = (v - p1.x) * invDir.x;
+            if (p1.x <= v) {
+                p1.x /= v;
+                dir1.x /= v;
+                index1 = kd_tree[index].split.children[0];
+                index2 = kd_tree[index].split.children[1];
+                side = KD_RIGHT;
+                l1 = true;
+            } else {
+                p1.x = (p1.x - v) / (1 - v);
+                dir1.x = (dir1.x - v) / (1 - v);
+                index1 = kd_tree[index].split.children[1];
+                index2 = kd_tree[index].split.children[0];
+                side = KD_LEFT;
+                l1 = false;
+            }
+            dir1 = normalize(dir1);
+            if (p2.x <= v) {
+                p2.x /= v;
+                dir2.x /= v;
+                l2 = true;
+            } else {
+                p2.x = (p2.x - v) / (1 - v);
+                dir2.x = (dir2.x - v) / (1 - v);
+                l2 = false;
+            }
+            dir2 = normalize(dir2);
+            if (l1 && l2) {
+                return traverse_kd(kd_tree[index].split.children[0], p1, p2,
+                        dir1, 1/dir1, near, far, verts, tris, kd_tree, col,
+                        str, isPrinter);
+            } else if (!l1 && !l2) {
+                return traverse_kd(kd_tree[index].split.children[1], p1, p2,
+                        dir1, 1/dir1, near, far, verts, tris, kd_tree, col,
+                        str, isPrinter);
+            }
+            break;
+        case KD_Y:
+            d = (v - p1.y) * invDir.y;
+            if (p1.y <= v) {
+                p1.y /= v;
+                dir1.y /= v;
+                index1 = kd_tree[index].split.children[0];
+                index2 = kd_tree[index].split.children[1];
+                side = KD_UP;
+                l1 = true;
+            } else {
+                p1.y = (p1.y - v) / (1 - v);
+                dir1.y = (dir1.y - v) / (1 - v);
+                index1 = kd_tree[index].split.children[1];
+                index2 = kd_tree[index].split.children[0];
+                side = KD_DOWN;
+                l1 = false;
+            }
+            dir1 = normalize(dir1);
+            if (p2.y <= v) {
+                p2.y /= v;
+                dir2.y /= v;
+                l2 = true;
+            } else {
+                p2.y = (p2.y - v) / (1 - v);
+                dir2.y = (dir2.y - v) / (1 - v);
+                l2 = false;
+            }
+            dir2 = normalize(dir2);
+            if (l1 && l2) {
+                return traverse_kd(kd_tree[index].split.children[0], p1, p2,
+                        dir1, 1/dir1, near, far, verts, tris, kd_tree, col,
+                        str, isPrinter);
+            } else if (!l1 && !l2) {
+                return traverse_kd(kd_tree[index].split.children[1], p1, p2,
+                        dir1, 1/dir1, near, far, verts, tris, kd_tree, col,
+                        str, isPrinter);
+            }
+            break;
+        default:
+            d = (v - p1.z) * invDir.z;
+            if (p1.z <= v) {
+                p1.z /= v;
+                dir1.z /= v;
+                index1 = kd_tree[index].split.children[0];
+                index2 = kd_tree[index].split.children[1];
+                side = KD_FRONT;
+                l1 = true;
+            } else {
+                p1.z = (p1.z - v) / (1 - v);
+                dir1.z = (dir1.z - v) / (1 - v);
+                index1 = kd_tree[index].split.children[1];
+                index2 = kd_tree[index].split.children[0];
+                side = KD_BACK;
+                l1 = false;
+            }
+            dir1 = normalize(dir1);
+            if (p2.z <= v) {
+                p2.z /= v;
+                dir2.z /= v;
+                l2 = true;
+            } else {
+                p2.z = (p2.z - v) / (1 - v);
+                dir2.z = (dir2.z - v) / (1 - v);
+                l2 = false;
+            }
+            dir2 = normalize(dir2);
+            if (l1 && l2) {
+                return traverse_kd(kd_tree[index].split.children[0], p1, p2,
+                        dir1, 1/dir1, near, far, verts, tris, kd_tree, col,
+                        str, isPrinter);
+            } else if (!l1 && !l2) {
+                return traverse_kd(kd_tree[index].split.children[1], p1, p2,
+                        dir1, 1/dir1, near, far, verts, tris, kd_tree, col,
+                        str, isPrinter);
+            }
+            break;
+    }
+    *col = (1-*str) * (*col) + *str * (1 + new_color(
+        (side == KD_LEFT) - (side == KD_RIGHT),
+        (side == KD_DOWN) - (side == KD_UP),
+        (side == KD_BACK) - (side == KD_FRONT)
+    )/2);
+    *str *= 0.5;
+    traverse_kd(index1, p1, p1 + dir * d, dir1, 1/dir1, near,
+            side, verts, tris, kd_tree, col, str,
+            isPrinter);
+    traverse_kd(index2, p1 + dir * d, p2, dir2, 1/dir2,
+            1+side-2*(side%2), far, verts, tris, kd_tree, col, str,
+            isPrinter);
+    return true;
+}
+ */
+
+typedef union vec_arr {
+    vec_t scalar[3];
+    vec3 vector;
+} vec_arr;
 
 color
 trace_ray(Ray r,
@@ -248,56 +441,221 @@ trace_ray(Ray r,
         global int3 *tris,
         global kdnode *kd_tree,
         int depth,
-        vec_t str,
         global Object *ignore,
         bool isPrinter) {
+    vec_t tmin, tmax, minHit;
+    KD_SIDE near, far;
+    if (hit_AABB(
+            (vec3[]){
+                kd_tree[0].min,
+                kd_tree[0].max
+            }, r, &tmin, &tmax, &near, &far)) {
+        vec_arr p1;
+        p1.vector = r.orig;
+        if (tmin > 0) {
+            p1.vector += tmin * r.dir;
+        }
+        int index = 0, didHit = 0;
+        vec_t minHit;
+        vec3 normal;
+        color col;
+        float str = 1;
+        while (index != -1) {
+            while (kd_tree[index].type == KD_SPLIT) {
+                int axis = kd_tree[index].split.axis;
+                int cond = p1.scalar[axis] > kd_tree[index].split.value;
+                index = kd_tree[index].split.children[cond];
+            }
+            for (int i = 0; i < kd_tree[index].leaf.tri_count; i++) {
+                int3 tri = tris[kd_tree[index].leaf.tris + i];
+                vec3 v1 = verts[tri.x].xyz,
+                     v2 = verts[tri.y].xyz,
+                     v3 = verts[tri.z].xyz;
+                vec_t t;
+                if (hit_triangle(v1, v2, v3, r.orig, r.dir, &t)) {
+                    if (!didHit || t < minHit) {
+                        didHit = 1;
+                        minHit = t;
+                        normal = normalize(cross(v2 - v1, v3 - v1));
+                    }
+                }
+            }
+            if (didHit) break;
+            hit_AABB2((vec3[]){
+                    kd_tree[index].min,
+                    kd_tree[index].max
+                }, r, &tmax, &far);
+            col = (1 - str)*col + str*(1 + new_color(
+                    (far == KD_LEFT) - (far == KD_RIGHT),
+                    (far == KD_DOWN) - (far == KD_UP),
+                    (far == KD_BACK) - (far == KD_FRONT)
+            )) / 2;
+            str *= 0.9;
+            index = kd_tree[index].ropes[far];
+            p1.vector = r.orig + tmax * r.dir;
+        }
+
+        if (didHit) {
+            return (1-str)*col + str*(normal+1)/2;
+        }
+        return (1-str)*col;
+    }
+    return 0;
+}
+/*
+color
+trace_ray(Ray r,
+        global Object *objects,
+        int objcount,
+        global vec4 *verts,
+        global int3 *tris,
+        global kdnode *kd_tree,
+        int depth,
+        global Object *ignore,
+        bool isPrinter) {
+    if (isPrinter) {
+        int index = 0;
+        KD_SIDE near, far;
+        vec_t tmin, tmax;
+        if (hit_AABB(
+            (vec3[]){
+                kd_tree[index].min,
+                kd_tree[index].max
+            }, r, &tmin, &tmax, &near, &far)) {
+            vec3 hit = r.orig;
+            vec3 ext = kd_tree[index].max - kd_tree[index].min;
+            if (tmin > 0) {
+                hit += r.dir * tmin;
+            }
+            hit = (hit - kd_tree[index].min) / ext;
+            printf("%d\n", near);
+            while (kd_tree[index].type != KD_LEAF){
+                if (kd_tree[index].split.axis == near/2) {
+                    switch(near%2) {
+                        case 0:
+                            index = kd_tree[index].split.children[0];
+                            break;
+                        case 1:
+                            index = kd_tree[index].split.children[1];
+                            break;
+                    }
+                } else {
+                    switch(kd_tree[index].split.axis) {
+                        case KD_X:
+                            if (hit.x < kd_tree[index].split.value) {
+                                hit.x /= kd_tree[index].split.value;
+                                index = kd_tree[index].split.children[0];
+                            } else {
+                                hit.x = (hit.x - kd_tree[index].split.value) /
+                                        (1 - kd_tree[index].split.value);
+                                index = kd_tree[index].split.children[1];
+                            }
+                            break;
+                        case KD_Y:
+                            if (hit.y < kd_tree[index].split.value) {
+                                hit.y /= kd_tree[index].split.value;
+                                index = kd_tree[index].split.children[0];
+                            } else {
+                                hit.y = (hit.x - kd_tree[index].split.value) /
+                                        (1 - kd_tree[index].split.value);
+                                index = kd_tree[index].split.children[1];
+                            }
+                            break;
+                        default: // KD_Z
+                            if (hit.z < kd_tree[index].split.value) {
+                                hit.z /= kd_tree[index].split.value;
+                                index = kd_tree[index].split.children[0];
+                            } else {
+                                hit.z = (hit.x - kd_tree[index].split.value) /
+                                        (1 - kd_tree[index].split.value);
+                                index = kd_tree[index].split.children[1];
+                            }
+                            break;
+                    }
+
+                }
+                printf("\t%d ", index);
+                print_vec3(hit);
+                printf("\n");
+            }
+            printf("\n");
+            ext = kd_tree[index].max - kd_tree[index].min;
+            vec3 dir = normalize(r.dir / ext);
+            vec3 inv = 1/dir;
+        }
+        return 1;
+    }
+
+
     vec_t minHit;
     vec3 normal;
     int didHit = 0;
-    kdnode root = kd_tree[0];
     vec_t tmin, tmax;
     KD_SIDE near, far;
-    int count = 0;
-    if (hit_AABB((vec3[]){root.min, root.max}, r, &tmin, &tmax, &near, &far)) {
-        vec3 pos = r.orig + tmin * r.dir;
-        int index = 0;
-        for (int iter = 0; iter <= MAX_ITER && index != -1 && !didHit; iter++) {
-            if (iter == MAX_ITER) {
-                if (isPrinter) {
-                    printf("%d\n", index);
-                }
-                return new_color(1, 1, 1);
-            }
-            kdnode curr = kd_tree[index];
+    int index = 0;
+    kdnode curr = kd_tree[0]; // Root
+    int triCount = 0;
+    color col = 0;
+    vec_t str = 1;
+    if (hit_AABB((vec3[]){curr.min, curr.max}, r, &tmin, &tmax, &near, &far)) {
+        tmax = tmin;
+        vec3 point = r.orig;
+        if (tmin > 0) {
+            point += r.dir * tmin;
+        }
+        while (index != -1) {
+            curr = kd_tree[index];
             while (curr.type != KD_LEAF) {
-                vec_t v;
-                switch(curr.split.axis) {
-                    case KD_X:
-                        v = pos.x;
-                        break;
-                    case KD_Y:
-                        v = pos.y;
-                        break;
-                    case KD_Z:
-                        v = pos.z;
-                        break;
-                }
-                if (v <= curr.split.value) {
-                    index = curr.split.low_child;
+                if (kd_tree[index].split.axis == near/2) {
+                    switch(near%2) {
+                        case 0:
+                            index = kd_tree[index].split.children[0];
+                            break;
+                        case 1:
+                            index = kd_tree[index].split.children[1];
+                            break;
+                    }
                 } else {
-                    index = curr.split.high_child;
+                    switch(kd_tree[index].split.axis) {
+                        case KD_X:
+                            if (point.x < kd_tree[index].split.value) {
+                                point.x /= kd_tree[index].split.value;
+                                index = kd_tree[index].split.children[0];
+                            } else {
+                                point.x = (point.x - kd_tree[index].split.value) /
+                                        (1 - kd_tree[index].split.value);
+                                index = kd_tree[index].split.children[1];
+                            }
+                            break;
+                        case KD_Y:
+                            if (point.y < kd_tree[index].split.value) {
+                                point.y /= kd_tree[index].split.value;
+                                index = kd_tree[index].split.children[0];
+                            } else {
+                                point.y = (point.x - kd_tree[index].split.value) /
+                                        (1 - kd_tree[index].split.value);
+                                index = kd_tree[index].split.children[1];
+                            }
+                            break;
+                        default: // KD_Z
+                            if (point.z < kd_tree[index].split.value) {
+                                point.z /= kd_tree[index].split.value;
+                                index = kd_tree[index].split.children[0];
+                            } else {
+                                point.z = (point.x - kd_tree[index].split.value) /
+                                        (1 - kd_tree[index].split.value);
+                                index = kd_tree[index].split.children[1];
+                            }
+                            break;
+                    }
+
                 }
                 curr = kd_tree[index];
             }
-            // Transform ray so that the AABB's min is at the origin and its max
-            // is at (1, 1, 1), and the ray's origin is at the intersection
-            // point.
-            vec3 ext = curr.max - curr.min;
-            Ray scaledR = new_Ray(
-                (pos - curr.min) / ext,
-                r.dir / ext
-            );
-            count += curr.leaf.tri_count;
+            return new_color((vec_t)index/255, 0, 0);
+            //index = get_leaf(kd_tree, index, point);
+            //curr = kd_tree[index];
+            triCount += curr.leaf.tri_count;
             for (int i = 0; i < curr.leaf.tri_count; i++) {
                 int3 tri = tris[curr.leaf.tris + i];
                 vec3 v1 = verts[tri.x].xyz,
@@ -312,96 +670,34 @@ trace_ray(Ray r,
                     }
                 }
             }
-            vec3 newPosScaled;
-            far = oppSide(scaledR, near, &newPosScaled);
-            if (isPrinter) {
-                printf("%d(%d) ", index, far);
+            if (didHit) {
+                //dist += (minHit - tmax) * (vec_t)curr.leaf.tri_count;
+                break;
             }
-            pos = curr.min + newPosScaled * (curr.max - curr.min);
+            //far = hit_AABB2((vec3[]){curr.min, curr.max}, r, &tmax);
+            if (!hit_AABB((vec3[]){curr.min, curr.max}, r, &tmin, &tmax, &near,
+                &far)) {
+                break;
+            }
+            //dist += (tmax - tmin) * (vec_t)curr.leaf.tri_count;
+            point = r.orig + r.dir * tmax;
+            col = (1-str)*col + str * (1 + new_color(
+                (far == KD_LEFT) - (far == KD_RIGHT),
+                (far == KD_DOWN) - (far == KD_UP),
+                (far == KD_BACK) - (far == KD_FRONT)
+            ))/2;
+            str *= 0.5;
             index = curr.ropes[far];
         }
     }
-    if (isPrinter) {
-        printf("\n");
-        return 1;
-    }
-    /*
-    for (int i = 0; i < tricount; i++) {
-        vec3 v1 = verts[tris[i].x].xyz,
-             v2 = verts[tris[i].y].xyz,
-             v3 = verts[tris[i].z].xyz;
-        vec_t t;
-        if (hit_triangle(v1.xyz, v2.xyz, v3.xyz, start, dir, &t)) {
-            if (!didHit || t < minHit) {
-                didHit = 1;
-                minHit = t;
-                normal = normalize(cross(v2-v1, v3-v1));
-            }
-        }
-    }
-    */
-    vec_t R = (count % 256) / 255.0;
-    count /= 256;
-    vec_t G = 0;
-    if (count > 0)
-        G = 1.0 - (count % 256) / 255.0;
-    count /= 256;
-    vec_t B = 0;
-    if (count > 0)
-        B = 1.0 - (count % 256) / 255.0;
-    return new_color(R, G, B);
-    /*
-    vec3 dir = r.dir;
     if (didHit) {
-        dir = dir - 2 * dot(dir, normal) * normal;
+        vec3 norm = r.dir - 2 * dot(r.dir, normal) * normal;
+        return (1-str)*col + str*convert_color((norm + 1)/2);
     }
-    str = 1.0 / (count/100.0 + 1);
-    return convert_color(str * (dir + 1) / 2);
-     */
-    /*
-    if (str < 0.01) {
-        return 0;
-    }
-    Hit minHit;
-    int didHit = 0;
-    for (int i = 0; i < objcount; i++) {
-        if (objects + i == ignore) {
-            continue;
-        }
-        Object obj = objects[i];
-        float dist;
-        switch (obj.type) {
-            case OBJ_SPHERE:
-                if (hit_sphere(obj.position,
-                    obj.sphere.radius * obj.sphere.radius,
-                    start,
-                    dir,
-                    &dist)) {
-                    if (!didHit || dist < minHit.dist) {
-                        didHit = 1;
-                        minHit.dist = dist;
-                        minHit.obj = &objects[i];
-                    }
-                }
-        }
-    }
-    if (didHit) {
-        float3 pos = start + minHit.dist * dir;
-        float3 normal = normalize(pos - minHit.obj->position);
-        dir = dir - 2 * dot(dir, normal) * normal;
-        start = pos;
-        return trace_ray(start,
-            dir,
-            objects,
-            objcount,
-            depth - 1,
-            str * 0.9,
-            minHit.obj);
-    }
-
-    return convert_float3(str * (dir + 1) / 2);
-     */
+    return (1-str)*col;
+   // return (1 - d)*new_color(1, 0, 0);
 }
+ */
 
 kernel void
 render(write_only image2d_t image,
@@ -441,8 +737,13 @@ render(write_only image2d_t image,
         y_coord
     }, (color4)
     {
-        trace_ray(r, objects, objcount, verts, tris, kd_tree,
-            500, 1,
+        trace_ray(r,
+            objects,
+            objcount,
+            verts,
+            tris,
+            kd_tree,
+            500,
             NULL,
             x_coord == resX/2 && y_coord == resY/2), 1.0
     }

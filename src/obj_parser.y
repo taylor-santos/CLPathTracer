@@ -91,6 +91,7 @@
 %token<group> GROUP "group"
 
 %type<i3> v_index triangle polygon
+%type<dval> number
 
 %start file
 
@@ -135,23 +136,29 @@ vertex
     }
 
 tex
-    : VT DOUBLE
-    | VT DOUBLE DOUBLE
-    | VT DOUBLE DOUBLE DOUBLE
+    : VT number
+    | VT number number
+    | VT number number number
 
 norm
-    : VN DOUBLE DOUBLE DOUBLE
+    : VN number number number
+
+number
+    : DOUBLE
+    | INT {
+        $$ = (vec_t)$1;
+    }
 
 polygon
     : triangle
     | polygon v_index {
-        append_Model_tri(model, $1);
-        $$ = (cl_int3){ { $1.s[0]-1, $1.s[2]-1, $2.s[0]-1 } };
+        //append_Model_tri(model, $1);
+        $$ = (cl_int3){ { $1.s[0], $1.s[2], $2.s[0] } };
     }
 
 triangle
     : F v_index v_index v_index {
-        $$ = (cl_int3){ { $2.s[0]-1, $3.s[0]-1, $4.s[0]-1 } };
+        $$ = (cl_int3){ { $2.s[0], $3.s[0], $4.s[0] } };
     }
 
 

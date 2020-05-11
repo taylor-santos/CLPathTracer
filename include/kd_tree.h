@@ -37,8 +37,7 @@ struct __attribute__ ((packed)) kdnode {
         struct {
             vec_t value;
             KD_AXIS axis;
-            kd_index low_child;
-            kd_index high_child;
+            kd_index children[2];
         } split;
         struct {
             kd_index tris;

@@ -22,12 +22,7 @@ new_Model(void) {
         exit(EXIT_FAILURE);
     }
     *model = (Model){
-        new_vector(),
-        new_vector(),
-        0,
-        0,
-        Vector3_zero,
-        Vector3_zero
+            new_vector(), new_vector(), 0, 0, Vector3_zero, Vector3_zero
     };
     return model;
 }
@@ -42,12 +37,12 @@ delete_Model(Model *model) {
 void
 append_Model_vert(Model *model, Vector4 vert) {
     vector_append(model->verts, ((Vector4){
-        {
-            (float)vert.s[0],
-            (float)vert.s[1],
-            (float)vert.s[2],
-            (float)vert.s[3]
-        }
+            {
+                    (float)vert.s[0],
+                    (float)vert.s[1],
+                    (float)vert.s[2],
+                    (float)vert.s[3]
+            }
     }));
     model->vert_count++;
     if (model->vert_count == 1) {
@@ -59,6 +54,13 @@ append_Model_vert(Model *model, Vector4 vert) {
 
 void
 append_Model_tri(Model *model, cl_int3 tri) {
+    for (int i = 0; i < 3; i++) {
+        if (tri.s[i] < 0) {
+            tri.s[i] += model->vert_count;
+        } else {
+            tri.s[i] -= 1;
+        }
+    }
     vector_append(model->tris, tri);
     model->tri_count++;
 }
@@ -91,10 +93,9 @@ struct filetype {
     const char *ext;
     enum model_type type;
 } filetypes[] = {
-    {
-        ".obj",
-        MODEL_OBJ
-    }
+        {
+                ".obj", MODEL_OBJ
+        }
 };
 
 static enum model_type
@@ -139,8 +140,8 @@ LoadModel(const char *filename, Model *model) {
             fprintf(stderr, "Supported filetypes are: ");
             char *sep = "";
             for (size_t i = 0;
-                i < sizeof(filetypes) / sizeof(*filetypes);
-                i++) {
+                    i < sizeof(filetypes) / sizeof(*filetypes);
+                    i++) {
                 fprintf(stderr, "%s\"%s\"", sep, filetypes[i].ext);
                 sep = ", ";
             }
