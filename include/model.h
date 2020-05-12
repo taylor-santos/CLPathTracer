@@ -4,6 +4,7 @@
 #include <CL/cl_gl.h>
 
 #include "vector3.h"
+#include "kd_tree.h"
 
 typedef struct Model Model;
 
@@ -15,15 +16,17 @@ void
 append_Model_vert(Model *, Vector4);
 void
 append_Model_tri(Model *, cl_int3);
-Vector4 *
+const Vector4 *
 Model_verts(Model *);
-cl_int3 *
+const cl_int3 *
 Model_tris(Model *);
 Vector3
 Model_min(Model *);
 Vector3
 Model_max(Model *);
+const char *
+Model_path(Model *);
 int
-LoadModel(const char *filename, Model *model);
+LoadModel(const char *filename, kd *model);
 
 #endif//MODEL_H

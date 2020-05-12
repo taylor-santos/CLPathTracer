@@ -3,8 +3,6 @@
 
 #include <stddef.h>
 
-typedef void *vector;
-
 extern size_t VEC_INDEX;
 
 /* Add 'item' to the end of the vector, resizing if necessary. Note: the
@@ -18,18 +16,20 @@ extern size_t VEC_INDEX;
 #define vector_length(vec) (vector_size(vec) / sizeof(*vec))
 #define vector_concat(v1, v2) vec_concat((void**)&v1, v2)
 void
-vec_concat(vector v1_ptr, vector v2);
-vector
+vec_concat(void *v1_ptr, const void *v2);
+void *
 new_vector(void);
+void *
+init_vector(size_t count, size_t size);
 void
-delete_vector(vector);
+delete_vector(void *);
 /* Add 'size' to the vector's length, reallocating if necessary. Returns the
  * vector's old length divided by 'size'. This can be used to index into the
  * vector at the newly added space. (see: vector_append())
  */
 size_t
-vector_grow(vector *vec_ptr, size_t size);
+vector_grow(void **vec_ptr, size_t size);
 size_t
-vector_size(vector);
+vector_size(const void *);
 
 #endif//VECTOR_H

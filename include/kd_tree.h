@@ -2,7 +2,6 @@
 #define KD_TREE_H
 
 #include "vector3.h"
-#include "model.h"
 
 typedef struct kd kd;
 typedef struct kdnode kdnode;
@@ -10,7 +9,7 @@ typedef cl_int kd_index;
 
 struct kd {
     kdnode *node_vec;
-    Vector4 *vert_vec;
+    const Vector4 *vert_vec;
     cl_int3 *tri_vec;
 };
 
@@ -46,8 +45,12 @@ struct __attribute__ ((packed)) kdnode {
     };
 };
 
+struct Model;
 kd
-build_kd(Model *model);
+build_kd(struct Model *model);
+
+int
+parse_kd(const char *filename, kd *tree);
 
 void
 delete_kd(kd tree);

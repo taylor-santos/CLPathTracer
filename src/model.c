@@ -12,6 +12,7 @@ struct Model {
     size_t vert_count;
     size_t tri_count;
     Vector3 min, max;
+    char *path;
 };
 
 Model *
@@ -22,7 +23,7 @@ new_Model(void) {
         exit(EXIT_FAILURE);
     }
     *model = (Model){
-            new_vector(), new_vector(), 0, 0, Vector3_zero, Vector3_zero
+            new_vector(), new_vector(), 0, 0, Vector3_zero, Vector3_zero, NULL
     };
     return model;
 }
@@ -65,12 +66,12 @@ append_Model_tri(Model *model, cl_int3 tri) {
     model->tri_count++;
 }
 
-Vector4 *
+const Vector4 *
 Model_verts(Model *model) {
     return model->verts;
 }
 
-cl_int3 *
+const cl_int3 *
 Model_tris(Model *model) {
     return model->tris;
 }
@@ -85,8 +86,13 @@ Model_max(Model *model) {
     return model->max;
 }
 
+const char *
+Model_path(Model *model) {
+    return model->path;
+}
+
 enum model_type {
-    MODEL_OBJ, MODEL_NONE
+    MODEL_OBJ, MODEL_KD, MODEL_NONE
 };
 
 struct filetype {
@@ -95,13 +101,19 @@ struct filetype {
 } filetypes[] = {
         {
                 ".obj", MODEL_OBJ
+        }, {
+                ".kd", MODEL_KD
         }
 };
 
 static enum model_type
-get_filetype(const char *filename) {
+get_filetype(const char *filename, char **path) {
     const char *ext = strrchr(filename, '.');
     if (ext) {
+        if (path) {
+            *path = calloc(ext - filename + 1, 1);
+            strncpy(*path, filename, ext - filename);
+        }
         for (size_t i = 0; i < sizeof(filetypes) / sizeof(*filetypes); i++) {
             if (strcmp(ext, filetypes[i].ext) == 0) {
                 return filetypes[i].type;
@@ -131,10 +143,21 @@ parse_OBJ(const char *filename, Model *model) {
 }
 
 int
-LoadModel(const char *filename, Model *model) {
-    switch (get_filetype(filename)) {
+LoadModel(const char *filename, kd *tree) {
+    char *path;
+    Model *model;
+    switch (get_filetype(filename, &path)) {
         case MODEL_OBJ:
-            return parse_OBJ(filename, model);
+            model = new_Model();
+            model->path = path;
+            if (parse_OBJ(filename, model)) {
+                delete_Model(model);
+                return 1;
+            }
+            *tree = build_kd(model);
+            return 0;
+        case MODEL_KD:
+            return parse_kd(filename, tree);
         default:
             fprintf(stderr, "Unrecognized filetype: \"%s\"\n", filename);
             fprintf(stderr, "Supported filetypes are: ");
@@ -146,6 +169,7 @@ LoadModel(const char *filename, Model *model) {
                 sep = ", ";
             }
             fprintf(stderr, "\n");
+            free(path);
             return 1;
     }
 }

@@ -48,11 +48,11 @@ CLCreateImage(GLuint texture) {
     cl_int err;
 
     State.image = clCreateFromGLTexture(State.context,
-        CL_MEM_WRITE_ONLY,
-        GL_TEXTURE_2D,
-        0,
-        texture,
-        &err);
+            CL_MEM_WRITE_ONLY,
+            GL_TEXTURE_2D,
+            0,
+            texture,
+            &err);
     HANDLE_ERR(err);
 }
 
@@ -64,14 +64,14 @@ update_image(cl_command_queue queue, cl_mem *image, cl_kernel kernel) {
 void
 CLSetCameraMatrix(Matrix matrix) {
     HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
-        State.matrix,
-        CL_TRUE,
-        0,
-        sizeof(Matrix),
-        &matrix,
-        0,
-        NULL,
-        NULL));
+            State.matrix,
+            CL_TRUE,
+            0,
+            sizeof(Matrix),
+            &matrix,
+            0,
+            NULL,
+            NULL));
 }
 
 static void
@@ -79,9 +79,9 @@ update_args(cl_kernel kernel) {
     size_t count = vector_size(State.vec_args) / sizeof(KernelArg);
     for (size_t i = 0; i < count; i++) {
         HANDLE_ERR(clSetKernelArg(kernel,
-            i,
-            State.vec_args[i].size,
-            State.vec_args[i].arg_ptr));
+                i,
+                State.vec_args[i].size,
+                State.vec_args[i].arg_ptr));
     }
 }
 
@@ -107,14 +107,14 @@ CLSetObjects(Object *vec_objects, size_t size) {
         return;
     }
     HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
-        State.objects,
-        CL_TRUE,
-        0,
-        size,
-        vec_objects,
-        0,
-        NULL,
-        NULL));
+            State.objects,
+            CL_TRUE,
+            0,
+            size,
+            vec_objects,
+            0,
+            NULL,
+            NULL));
 }
 
 void
@@ -124,7 +124,7 @@ CLSetMeshes(kd *models) {
         return;
     }
     kd model = models[0];
-    Vector4 *verts = model.vert_vec;
+    const Vector4 *verts = model.vert_vec;
     size_t vertcount = vector_length(verts);
     if (vertcount != (size_t)State.vertcount) {
         resize_buffer(&State.verts, vertcount * sizeof(*verts));
@@ -142,32 +142,32 @@ CLSetMeshes(kd *models) {
         State.treesize = treesize;
     }
     HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
-        State.verts,
-        CL_TRUE,
-        0,
-        vertcount * sizeof(*verts),
-        verts,
-        0,
-        NULL,
-        NULL));
+            State.verts,
+            CL_TRUE,
+            0,
+            vertcount * sizeof(*verts),
+            verts,
+            0,
+            NULL,
+            NULL));
     HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
-        State.tris,
-        CL_TRUE,
-        0,
-        tricount * sizeof(*tris),
-        tris,
-        0,
-        NULL,
-        NULL));
+            State.tris,
+            CL_TRUE,
+            0,
+            tricount * sizeof(*tris),
+            tris,
+            0,
+            NULL,
+            NULL));
     HANDLE_ERR(clEnqueueWriteBuffer(State.queue,
-        State.kdtree,
-        CL_TRUE,
-        0,
-        treesize,
-        model.node_vec,
-        0,
-        NULL,
-        NULL));
+            State.kdtree,
+            CL_TRUE,
+            0,
+            treesize,
+            model.node_vec,
+            0,
+            NULL,
+            NULL));
 }
 
 void
@@ -176,16 +176,15 @@ CLExecute(int width, int height) {
     update_image(State.queue, &State.image, State.kernel);
     update_args(State.kernel);
     CLEnqueueKernel(2, (size_t[]){
-        width,
-        height
+            width, height
     }, NULL, State.queue, State.kernel);
     clFinish(State.queue);
     HANDLE_ERR(clEnqueueReleaseGLObjects(State.queue,
-        1,
-        &State.image,
-        0,
-        0,
-        NULL));
+            1,
+            &State.image,
+            0,
+            0,
+            NULL));
 }
 
 void
@@ -198,30 +197,30 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
     State.device = CLGetDevice(State.platform);
     State.context = CLCreateContext(State.platform, State.device);
     State.program =
-        CLBuildProgram(kernel_filename, State.context, State.device);
+            CLBuildProgram(kernel_filename, State.context, State.device);
     State.queue = CLCreateQueue(State.context, State.device);
     State.kernel = CLCreateKernel(kernel_name, State.program);
     State.matrix = CLCreateBuffer(State.context, sizeof(Matrix));
     State.vec_args = new_vector();
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_mem), &State.image, 0
+            sizeof(cl_mem), &State.image, 0
     ));
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_mem), &State.matrix, 0
+            sizeof(cl_mem), &State.matrix, 0
     ));
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_mem), &State.objects, 0
+            sizeof(cl_mem), &State.objects, 0
     ));
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_int), &State.objcount, 1
+            sizeof(cl_int), &State.objcount, 1
     ));
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_mem), &State.verts, 0
+            sizeof(cl_mem), &State.verts, 0
     ));
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_mem), &State.tris, 0
+            sizeof(cl_mem), &State.tris, 0
     ));
     vector_append(State.vec_args, KernelArg(
-        sizeof(cl_mem), &State.kdtree, 0
+            sizeof(cl_mem), &State.kdtree, 0
     ));
 }

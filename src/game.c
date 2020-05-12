@@ -21,12 +21,9 @@ static struct {
     double movementSpeed;
     double sprintSpeed;
 } GameProperties = {
-    {
-        2,
-        2
-    },
-    0.1,
-    1
+        {
+                2, 2
+        }, 0.1, 1
 };
 static struct {
     double time;
@@ -67,10 +64,10 @@ close_window(GLFWwindow *window, int key, int scancode, int action, int mods) {
 
 void
 toggle_fullscreen(GLFWwindow *window,
-    int key,
-    int scancode,
-    int action,
-    int mods) {
+        int key,
+        int scancode,
+        int action,
+        int mods) {
     GLFWmonitor *monitor;
     const GLFWvidmode *mode;
 
@@ -79,12 +76,12 @@ toggle_fullscreen(GLFWwindow *window,
     }
     if (glfwGetWindowMonitor(window)) {
         glfwSetWindowMonitor(window,
-            NULL,
-            prevScreenPos[0],
-            prevScreenPos[1],
-            prevScreenSize[0],
-            prevScreenSize[1],
-            GLFW_DONT_CARE);
+                NULL,
+                prevScreenPos[0],
+                prevScreenPos[1],
+                prevScreenSize[0],
+                prevScreenSize[1],
+                GLFW_DONT_CARE);
         return;
     }
     monitor = glfwGetPrimaryMonitor();
@@ -98,12 +95,12 @@ toggle_fullscreen(GLFWwindow *window,
     GLGetWindowPos(&prevScreenPos[0], &prevScreenPos[1]);
     GLGetWindowSize(&prevScreenSize[0], &prevScreenSize[1]);
     glfwSetWindowMonitor(window,
-        monitor,
-        0,
-        0,
-        mode->width,
-        mode->height,
-        mode->refreshRate);
+            monitor,
+            0,
+            0,
+            mode->width,
+            mode->height,
+            mode->refreshRate);
 }
 
 void
@@ -184,12 +181,12 @@ mouse_handler(GLFWwindow *window, double x, double y) {
 
     State.lookRotation.y = CLAMP(State.lookRotation.y, -M_PI / 2, M_PI / 2);
     State.lookRotation.x =
-        fmod(fmod(State.lookRotation.x, 2 * M_PI) + 2 * M_PI, 2 * M_PI);
+            fmod(fmod(State.lookRotation.x, 2 * M_PI) + 2 * M_PI, 2 * M_PI);
 
     State.camera.Forward =
-        Vector3(-cos(State.lookRotation.y) * sin(State.lookRotation.x),
-            sin(State.lookRotation.y),
-            cos(State.lookRotation.x) * cos(State.lookRotation.y));
+            Vector3(-cos(State.lookRotation.y) * sin(State.lookRotation.x),
+                    sin(State.lookRotation.y),
+                    cos(State.lookRotation.x) * cos(State.lookRotation.y));
 }
 
 static void
@@ -213,8 +210,8 @@ StartGameLoop(void) {
     Vector3 up, right, forward;
     while (GLRender()) {
         speed = State.moveKey.sprint
-            ? GameProperties.sprintSpeed
-            : GameProperties.movementSpeed;
+                ? GameProperties.sprintSpeed
+                : GameProperties.movementSpeed;
         up = Vector3_up;
         right = vec_cross(up, State.camera.Forward);
         vec_normalize(&right);
@@ -232,8 +229,8 @@ StartGameLoop(void) {
 
 void
 GameInit(const char *kernel_filename,
-    const char *kernel_name,
-    const char **models) {
+        const char *kernel_name,
+        const char **models) {
     GLInit(kernel_filename, kernel_name);
     GLRegisterKey(GLFW_KEY_ESCAPE, close_window);
     GLRegisterKey(GLFW_KEY_F, toggle_fullscreen);
@@ -249,20 +246,15 @@ GameInit(const char *kernel_filename,
     GLGetMousePos(&State.mousePos.x, &State.mousePos.y);
     State.camVel = Vector3_zero;
     State.camera = (Camera){
-        0.1,
-        1,
-        M_PI / 3,
-        Vector3(0, 0.1, -0.2),
-        Vector3_forward
+            0.1, 1, M_PI / 3, Vector3(0, 0.1, -0.2), Vector3_forward
     };
     AddPhysObject(&State.camera.Position, &State.camVel);
     vec_objects = new_vector();
     size_t model_count = vector_length(models);
     vec_models = new_vector();
     for (size_t i = 0; i < model_count; i++) {
-        Model *model = new_Model();
-        LoadModel(models[i], model);
-        kd tree = build_kd(model);
+        kd tree;
+        LoadModel(models[i], &tree);
         vector_append(vec_models, tree);
     }
     GLSetMeshes(vec_models);

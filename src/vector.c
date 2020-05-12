@@ -18,6 +18,12 @@ get_vector(void *vec) {
     return &data[-1];
 }
 
+static const data *
+get_const_vector(const void *vec) {
+    const data *data = vec;
+    return &data[-1];
+}
+
 void *
 new_vector(void) {
     data *vector;
@@ -26,8 +32,20 @@ new_vector(void) {
         exit(EXIT_FAILURE);
     }
     *vector = (data){
-        0,
-        0
+            0, 0
+    };
+    return vector->data;
+}
+
+void *
+init_vector(size_t count, size_t size) {
+    data *vector;
+    if (NULL == (vector = malloc(sizeof(*vector) + count * size))) {
+        perror("malloc");
+        exit(EXIT_FAILURE);
+    }
+    *vector = (data){
+            count * size, count * size
     };
     return vector->data;
 }
@@ -51,8 +69,9 @@ vector_realloc(data **vec_ptr, size_t size) {
 }
 
 void
-vec_concat(void **v1_ptr, void *v2) {
-    data *vec1 = get_vector(*v1_ptr), *vec2 = get_vector(v2);
+vec_concat(void **v1_ptr, const void *v2) {
+    data *vec1 = get_vector(*v1_ptr);
+    const data *vec2 = get_const_vector(v2);
     size_t s1 = vec1->length, s2 = vec2->length;
     vector_realloc(&vec1, s1 + s2);
     memcpy(vec1->data + s1, vec2->data, s2);
@@ -73,7 +92,7 @@ vector_grow(void **vec_ptr, size_t size) {
 }
 
 size_t
-vector_size(void *vec) {
-    data *vector = get_vector(vec);
+vector_size(const void *vec) {
+    const data *vector = get_const_vector(vec);
     return vector->length;
 }

@@ -16,7 +16,7 @@
 #define convert_color(vec) convert_float3(vec)
 #define convert_vec3(vec) CONCAT(convert_, vec3)(vec)
 
-#define EPS 0.000000000000
+#define EPS 0.00000001
 
 typedef vec4 matrix[4];
 
@@ -456,9 +456,9 @@ trace_ray(Ray r,
             p1.vector += tmin * r.dir;
         }
         int index = 0, didHit = 0;
-        vec_t minHit;
-        vec3 normal;
-        color col;
+        vec_t minHit = 0;
+        vec3 normal = 0;
+        color col = 0;
         float str = 1;
         while (index != -1) {
             while (kd_tree[index].type == KD_SPLIT) {
@@ -481,20 +481,25 @@ trace_ray(Ray r,
                 }
             }
             if (didHit) break;
-            hit_AABB2((vec3[]){
+            if (!hit_AABB((vec3[]){
                     kd_tree[index].min,
                     kd_tree[index].max
-                }, r, &tmax, &far);
+                }, r, &tmin, &tmax, &near, &far)) {
+                return new_color(1,0,0);
+            }
+            //hit_AABB2((vec3[]){
+            //        kd_tree[index].min,
+            //        kd_tree[index].max
+            //    }, r, &tmax, &far);
             col = (1 - str)*col + str*(1 + new_color(
                     (far == KD_LEFT) - (far == KD_RIGHT),
                     (far == KD_DOWN) - (far == KD_UP),
                     (far == KD_BACK) - (far == KD_FRONT)
             )) / 2;
-            str *= 0.9;
+            str *= 1.0/(1.0 + kd_tree[index].leaf.tri_count/100.0);
             index = kd_tree[index].ropes[far];
             p1.vector = r.orig + tmax * r.dir;
         }
-
         if (didHit) {
             return (1-str)*col + str*(normal+1)/2;
         }
