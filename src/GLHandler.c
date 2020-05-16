@@ -28,13 +28,13 @@ GLGetMonitor(void) {
 
     monitors = glfwGetMonitors(&monitor_count);
     printf("There %s %d monitor%s available:\n",
-        monitor_count == 1
-            ? "is"
-            : "are",
-        monitor_count,
-        monitor_count == 1
-            ? ""
-            : "s");
+            monitor_count == 1
+                    ? "is"
+                    : "are",
+            monitor_count,
+            monitor_count == 1
+                    ? ""
+                    : "s");
     for (int i = 0; i < monitor_count; i++) {
         const char *name = glfwGetMonitorName(monitors[i]);
         printf("\t%d) ", i + 1);
@@ -58,10 +58,10 @@ GLCreateWindow(GLFWmonitor *monitor) {
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
     return glfwCreateWindow(mode->width / 2,
-        mode->height / 2,
-        WINDOW_NAME,
-        NULL,
-        NULL);
+            mode->height / 2,
+            WINDOW_NAME,
+            NULL,
+            NULL);
 }
 
 void
@@ -124,59 +124,39 @@ GLSetupRender(void) {
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     GLfloat vertexData[] = { // {x,y,z,u,v}
-        1.0f,
-        1.0f,
-        0.0f,
-        1.0f,
-        1.0f, // vertex 0
-        -1.0f,
-        1.0f,
-        0.0f,
-        0.0f,
-        1.0f, // vertex 1
-        1.0f,
-        -1.0f,
-        0.0f,
-        1.0f,
-        0.0f, // vertex 2
-        -1.0f,
-        -1.0f,
-        0.0f,
-        0.0f,
-        0.0f, // vertex 3
+            1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // vertex 0
+            -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, // vertex 1
+            1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // vertex 2
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // vertex 3
     };
     glBufferData(GL_ARRAY_BUFFER,
-        sizeof(vertexData),
-        vertexData,
-        GL_STATIC_DRAW);
+            sizeof(vertexData),
+            vertexData,
+            GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0,
-        3,
-        GL_FLOAT,
-        GL_FALSE,
-        5 * sizeof(GLfloat),
-        (char *)(0 + 0 * sizeof(GLfloat)));
+            3,
+            GL_FLOAT,
+            GL_FALSE,
+            5 * sizeof(GLfloat),
+            (char *)(0 + 0 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1,
-        2,
-        GL_FLOAT,
-        GL_FALSE,
-        5 * sizeof(GLfloat),
-        (char *)(0 + 3 * sizeof(GLfloat)));
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            5 * sizeof(GLfloat),
+            (char *)(0 + 3 * sizeof(GLfloat)));
     glGenBuffers(1, &ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     GLuint indexData[] = {
-        0,
-        1,
-        2, // triangle 0
-        2,
-        1,
-        3 // triangle 1
+            0, 1, 2, // triangle 0
+            2, 1, 3 // triangle 1
     };
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-        sizeof(indexData),
-        indexData,
-        GL_STATIC_DRAW);
+            sizeof(indexData),
+            indexData,
+            GL_STATIC_DRAW);
     glBindVertexArray(0);
     return vao;
 }
@@ -195,14 +175,14 @@ GLResizeTexture(GLuint *texture, int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glTexImage2D(GL_TEXTURE_2D,
-        0,
-        GL_RGBA8,
-        width,
-        height,
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        NULL);
+            0,
+            GL_RGBA8,
+            width,
+            height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            NULL);
 }
 
 GLuint
@@ -219,13 +199,13 @@ GLCreateTexture(int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     glTexImage2D(GL_TEXTURE_2D,
-        0,
-        GL_RGBA8,
-        width,
-        height,
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        NULL);
+            0,
+            GL_RGBA8,
+            width,
+            height,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            NULL);
     return texture;
 }

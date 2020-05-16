@@ -9,7 +9,9 @@ typedef cl_int kd_index;
 
 struct kd {
     kdnode *node_vec;
-    const Vector4 *vert_vec;
+    int *tri_indices;
+    Vector4 *vert_vec;
+    Vector4 *norm_vec;
     cl_int3 *tri_vec;
 };
 
@@ -26,9 +28,9 @@ typedef enum KD_SIDE {
     KD_FRONT = 5
 } KD_SIDE;
 
-struct __attribute__ ((packed)) kdnode {
-    kd_index ropes[6];
-    Vector3 min, max;
+#pragma pack(push, 1)
+struct kdnode {
+    Vector4 min, max;
     enum {
         KD_SPLIT, KD_LEAF
     } type;
@@ -41,13 +43,14 @@ struct __attribute__ ((packed)) kdnode {
         struct {
             kd_index tris;
             kd_index tri_count;
+            kd_index ropes[6];
         } leaf;
     };
 };
+#pragma pack(pop)
 
-struct Model;
 kd
-build_kd(struct Model *model);
+build_kd(cl_int3 *tris, Vector3 *verts, Vector3 *norms, const char *path);
 
 int
 parse_kd(const char *filename, kd *tree);

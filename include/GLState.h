@@ -3,7 +3,6 @@
 
 #include "matrix.h"
 #include "object.h"
-#include "model.h"
 #include "kd_tree.h"
 
 void

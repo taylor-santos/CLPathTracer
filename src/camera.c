@@ -11,13 +11,25 @@ camera_transform(Camera cam) {
     Vector3 pos = vec_negated(cam.Position);
     return Matrix(
     // 1st row
-        vec_x(left), vec_y(left), vec_z(left), vec_dot(left, pos),
+            vec_x(left),
+            vec_y(left),
+            vec_z(left),
+            vec_dot(left, pos),
     // 2nd row
-        vec_x(up), vec_y(up), vec_z(up), vec_dot(up, pos),
+            vec_x(up),
+            vec_y(up),
+            vec_z(up),
+            vec_dot(up, pos),
     // 3rd row
-        vec_x(forward), vec_y(forward), vec_z(forward), vec_dot(forward, pos),
+            vec_x(forward),
+            vec_y(forward),
+            vec_z(forward),
+            vec_dot(forward, pos),
     // 4th row
-        0, 0, 0, 1);
+            0,
+            0,
+            0,
+            1);
 }
 
 static Matrix

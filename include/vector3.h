@@ -48,6 +48,8 @@ vec_scaled(Vector3, vec_t);
 Vector3 *
 vec_scale(Vector3 *, vec_t);
 Vector3
+vec_divide(Vector3, Vector3);
+Vector3
 vec_min(Vector3, Vector3);
 Vector3
 vec_max(Vector3, Vector3);

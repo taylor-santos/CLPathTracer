@@ -8,6 +8,7 @@
 #include "object.h"
 #include "vector.h"
 #include "kd_tree.h"
+#include "model.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -20,10 +21,11 @@ static struct {
     } mouseSensitivity;
     double movementSpeed;
     double sprintSpeed;
+    double walkSpeed;
 } GameProperties = {
         {
                 2, 2
-        }, 0.1, 1
+        }, 1, 10, 0.1
 };
 static struct {
     double time;
@@ -34,7 +36,7 @@ static struct {
         double x, y;
     } mousePos;
     struct {
-        int forward, left, back, right, sprint;
+        int forward, left, back, right, sprint, walk;
     } moveKey;
     Camera camera;
     Vector3 camVel;
@@ -148,6 +150,15 @@ sprint(GLFWwindow *window, int key, int scancode, int action, int mods) {
     }
 }
 
+void
+walk(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        State.moveKey.walk = 1;
+    } else if (action == GLFW_RELEASE) {
+        State.moveKey.walk = 0;
+    }
+}
+
 static void
 change_fov(GLFWwindow *window, double xoffset, double yoffset) {
     double fov = State.camera.FOV / M_PI;
@@ -164,6 +175,7 @@ GameTerminate(void) {
     GLTerminate();
     PhysTerminate();
     delete_vector(vec_objects);
+    delete_vector(vec_models);
 }
 
 static void
@@ -211,7 +223,9 @@ StartGameLoop(void) {
     while (GLRender()) {
         speed = State.moveKey.sprint
                 ? GameProperties.sprintSpeed
-                : GameProperties.movementSpeed;
+                : State.moveKey.walk
+                        ? GameProperties.walkSpeed
+                        : GameProperties.movementSpeed;
         up = Vector3_up;
         right = vec_cross(up, State.camera.Forward);
         vec_normalize(&right);
@@ -230,8 +244,18 @@ StartGameLoop(void) {
 void
 GameInit(const char *kernel_filename,
         const char *kernel_name,
-        const char **models) {
+        const char *const *models) {
+    size_t model_count = vector_length(models);
+    vec_models = new_vector(model_count * sizeof(*vec_models));
+    for (size_t i = 0; i < model_count; i++) {
+        kd tree;
+        if (LoadModel(models[i], &tree)) {
+            continue;
+        }
+        vector_append(vec_models, tree);
+    }
     GLInit(kernel_filename, kernel_name);
+    GLSetMeshes(vec_models);
     GLRegisterKey(GLFW_KEY_ESCAPE, close_window);
     GLRegisterKey(GLFW_KEY_F, toggle_fullscreen);
     GLRegisterKey(GLFW_KEY_W, forward_key);
@@ -239,6 +263,7 @@ GameInit(const char *kernel_filename,
     GLRegisterKey(GLFW_KEY_S, back_key);
     GLRegisterKey(GLFW_KEY_A, left_key);
     GLRegisterKey(GLFW_KEY_LEFT_SHIFT, sprint);
+    GLRegisterKey(GLFW_KEY_LEFT_CONTROL, walk);
     GLRegisterScroll(change_fov);
     GLRegisterMouseFunction(mouse_handler);
     GLGetWindowPos(&prevScreenPos[0], &prevScreenPos[1]);
@@ -249,13 +274,5 @@ GameInit(const char *kernel_filename,
             0.1, 1, M_PI / 3, Vector3(0, 0.1, -0.2), Vector3_forward
     };
     AddPhysObject(&State.camera.Position, &State.camVel);
-    vec_objects = new_vector();
-    size_t model_count = vector_length(models);
-    vec_models = new_vector();
-    for (size_t i = 0; i < model_count; i++) {
-        kd tree;
-        LoadModel(models[i], &tree);
-        vector_append(vec_models, tree);
-    }
-    GLSetMeshes(vec_models);
+    vec_objects = new_vector(0);
 }

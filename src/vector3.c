@@ -34,15 +34,15 @@ vec_normalized(Vector3 v) {
 Vector3
 vec_add(Vector3 a, Vector3 b) {
     return Vector3(vec_x(a) + vec_x(b),
-        vec_y(a) + vec_y(b),
-        vec_z(a) + vec_z(b));
+            vec_y(a) + vec_y(b),
+            vec_z(a) + vec_z(b));
 }
 
 Vector3
 vec_subtract(Vector3 a, Vector3 b) {
     return Vector3(vec_x(a) - vec_x(b),
-        vec_y(a) - vec_y(b),
-        vec_z(a) - vec_z(b));
+            vec_y(a) - vec_y(b),
+            vec_z(a) - vec_z(b));
 }
 
 Vector3
@@ -80,27 +80,34 @@ vec_scaled(Vector3 v, vec_t factor) {
 }
 
 Vector3
+vec_divide(Vector3 a, Vector3 b) {
+    return Vector3(vec_x(a) / vec_x(b),
+            vec_y(a) / vec_y(b),
+            vec_z(a) / vec_z(b));
+}
+
+Vector3
 vec_min(Vector3 a, Vector3 b) {
     return Vector3(vec_x(a) < vec_x(b)
-        ? vec_x(a)
-        : vec_x(b),
-        vec_y(a) < vec_y(b)
-            ? vec_y(a)
-            : vec_y(b),
-        vec_z(a) < vec_z(b)
-            ? vec_z(a)
-            : vec_z(b));
+            ? vec_x(a)
+            : vec_x(b),
+            vec_y(a) < vec_y(b)
+                    ? vec_y(a)
+                    : vec_y(b),
+            vec_z(a) < vec_z(b)
+                    ? vec_z(a)
+                    : vec_z(b));
 }
 
 Vector3
 vec_max(Vector3 a, Vector3 b) {
     return Vector3(vec_x(a) > vec_x(b)
-        ? vec_x(a)
-        : vec_x(b),
-        vec_y(a) > vec_y(b)
-            ? vec_y(a)
-            : vec_y(b),
-        vec_z(a) > vec_z(b)
-            ? vec_z(a)
-            : vec_z(b));
+            ? vec_x(a)
+            : vec_x(b),
+            vec_y(a) > vec_y(b)
+                    ? vec_y(a)
+                    : vec_y(b),
+            vec_z(a) > vec_z(b)
+                    ? vec_z(a)
+                    : vec_z(b));
 }

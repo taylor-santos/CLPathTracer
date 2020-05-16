@@ -25,14 +25,14 @@ get_const_vector(const void *vec) {
 }
 
 void *
-new_vector(void) {
+new_vector(size_t capacity) {
     data *vector;
-    if (NULL == (vector = malloc(sizeof(*vector)))) {
+    if (NULL == (vector = malloc(sizeof(*vector) + capacity))) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
     *vector = (data){
-            0, 0
+            capacity, 0
     };
     return vector->data;
 }
@@ -50,21 +50,37 @@ init_vector(size_t count, size_t size) {
     return vector->data;
 }
 
+void *
+copy_vector(const void *v) {
+    const data *vector = get_const_vector(v);
+    void *copy = init_vector(1, vector->length);
+    memcpy(copy, vector->data, vector->length);
+    data *copy_data = get_vector(copy);
+    copy_data->length = vector->length;
+    return copy;
+}
+
 void
 delete_vector(void *vector) {
     if (vector == NULL) {
         return;
     }
-    free(get_vector(vector));
+    data *vec = get_vector(vector);
+    free(vec);
 }
 
 static void
 vector_realloc(data **vec_ptr, size_t size) {
-    *vec_ptr = realloc(*vec_ptr, sizeof(data) + size);
-    if (*vec_ptr == NULL) {
+    void *new_vec = realloc(*vec_ptr, sizeof(data) + size);
+    if (new_vec != *vec_ptr) {
+        printf("Reallocating %zu\n", size);
+    }
+    if (new_vec == NULL) {
+        free(*vec_ptr);
         perror("realloc");
         exit(EXIT_FAILURE);
     }
+    *vec_ptr = new_vec;
     (*vec_ptr)->capacity = size;
 }
 
@@ -84,7 +100,7 @@ size_t
 vector_grow(void **vec_ptr, size_t size) {
     data *vector = get_vector(*vec_ptr);
     if (vector->length + size > vector->capacity) {
-        vector_realloc(&vector, vector->length + size * 4);
+        vector_realloc(&vector, vector->capacity * 2 + vector->length + size);
     }
     vector->length += size;
     *vec_ptr = vector->data;

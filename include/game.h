@@ -3,8 +3,8 @@
 
 void
 GameInit(const char *kernel_filename,
-    const char *kernel_name,
-    const char **models);
+        const char *kernel_name,
+        const char *const *models);
 void
 StartGameLoop(void);
 void

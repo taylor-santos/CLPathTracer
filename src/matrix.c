@@ -56,114 +56,114 @@ mat_inverse(Matrix m, int *err) {
     vec_t det;
     Matrix inv = Matrix(
     // First Row
-        index(m, 5) * index(m, 10) * index(m, 15) -
-            index(m, 5) * index(m, 11) * index(m, 14) -
-            index(m, 9) * index(m, 6) * index(m, 15) +
-            index(m, 9) * index(m, 7) * index(m, 14) +
-            index(m, 13) * index(m, 6) * index(m, 11) -
-            index(m, 13) * index(m, 7) * index(m, 10),
-        -index(m, 1) * index(m, 10) * index(m, 15) +
-            index(m, 1) * index(m, 11) * index(m, 14) +
-            index(m, 9) * index(m, 2) * index(m, 15) -
-            index(m, 9) * index(m, 3) * index(m, 14) -
-            index(m, 13) * index(m, 2) * index(m, 11) +
-            index(m, 13) * index(m, 3) * index(m, 10),
-        index(m, 1) * index(m, 6) * index(m, 15) -
-            index(m, 1) * index(m, 7) * index(m, 14) -
-            index(m, 5) * index(m, 2) * index(m, 15) +
-            index(m, 5) * index(m, 3) * index(m, 14) +
-            index(m, 13) * index(m, 2) * index(m, 7) -
-            index(m, 13) * index(m, 3) * index(m, 6),
-        -index(m, 1) * index(m, 6) * index(m, 11) +
-            index(m, 1) * index(m, 7) * index(m, 10) +
-            index(m, 5) * index(m, 2) * index(m, 11) -
-            index(m, 5) * index(m, 3) * index(m, 10) -
-            index(m, 9) * index(m, 2) * index(m, 7) +
-            index(m, 9) * index(m, 3) * index(m, 6),
+            index(m, 5) * index(m, 10) * index(m, 15) -
+                    index(m, 5) * index(m, 11) * index(m, 14) -
+                    index(m, 9) * index(m, 6) * index(m, 15) +
+                    index(m, 9) * index(m, 7) * index(m, 14) +
+                    index(m, 13) * index(m, 6) * index(m, 11) -
+                    index(m, 13) * index(m, 7) * index(m, 10),
+            -index(m, 1) * index(m, 10) * index(m, 15) +
+                    index(m, 1) * index(m, 11) * index(m, 14) +
+                    index(m, 9) * index(m, 2) * index(m, 15) -
+                    index(m, 9) * index(m, 3) * index(m, 14) -
+                    index(m, 13) * index(m, 2) * index(m, 11) +
+                    index(m, 13) * index(m, 3) * index(m, 10),
+            index(m, 1) * index(m, 6) * index(m, 15) -
+                    index(m, 1) * index(m, 7) * index(m, 14) -
+                    index(m, 5) * index(m, 2) * index(m, 15) +
+                    index(m, 5) * index(m, 3) * index(m, 14) +
+                    index(m, 13) * index(m, 2) * index(m, 7) -
+                    index(m, 13) * index(m, 3) * index(m, 6),
+            -index(m, 1) * index(m, 6) * index(m, 11) +
+                    index(m, 1) * index(m, 7) * index(m, 10) +
+                    index(m, 5) * index(m, 2) * index(m, 11) -
+                    index(m, 5) * index(m, 3) * index(m, 10) -
+                    index(m, 9) * index(m, 2) * index(m, 7) +
+                    index(m, 9) * index(m, 3) * index(m, 6),
     // Second Row
-        -index(m, 4) * index(m, 10) * index(m, 15) +
-            index(m, 4) * index(m, 11) * index(m, 14) +
-            index(m, 8) * index(m, 6) * index(m, 15) -
-            index(m, 8) * index(m, 7) * index(m, 14) -
-            index(m, 12) * index(m, 6) * index(m, 11) +
-            index(m, 12) * index(m, 7) * index(m, 10),
-        index(m, 0) * index(m, 10) * index(m, 15) -
-            index(m, 0) * index(m, 11) * index(m, 14) -
-            index(m, 8) * index(m, 2) * index(m, 15) +
-            index(m, 8) * index(m, 3) * index(m, 14) +
-            index(m, 12) * index(m, 2) * index(m, 11) -
-            index(m, 12) * index(m, 3) * index(m, 10),
-        -index(m, 0) * index(m, 6) * index(m, 15) +
-            index(m, 0) * index(m, 7) * index(m, 14) +
-            index(m, 4) * index(m, 2) * index(m, 15) -
-            index(m, 4) * index(m, 3) * index(m, 14) -
-            index(m, 12) * index(m, 2) * index(m, 7) +
-            index(m, 12) * index(m, 3) * index(m, 6),
-        index(m, 0) * index(m, 6) * index(m, 11) -
-            index(m, 0) * index(m, 7) * index(m, 10) -
-            index(m, 4) * index(m, 2) * index(m, 11) +
-            index(m, 4) * index(m, 3) * index(m, 10) +
-            index(m, 8) * index(m, 2) * index(m, 7) -
-            index(m, 8) * index(m, 3) * index(m, 6),
+            -index(m, 4) * index(m, 10) * index(m, 15) +
+                    index(m, 4) * index(m, 11) * index(m, 14) +
+                    index(m, 8) * index(m, 6) * index(m, 15) -
+                    index(m, 8) * index(m, 7) * index(m, 14) -
+                    index(m, 12) * index(m, 6) * index(m, 11) +
+                    index(m, 12) * index(m, 7) * index(m, 10),
+            index(m, 0) * index(m, 10) * index(m, 15) -
+                    index(m, 0) * index(m, 11) * index(m, 14) -
+                    index(m, 8) * index(m, 2) * index(m, 15) +
+                    index(m, 8) * index(m, 3) * index(m, 14) +
+                    index(m, 12) * index(m, 2) * index(m, 11) -
+                    index(m, 12) * index(m, 3) * index(m, 10),
+            -index(m, 0) * index(m, 6) * index(m, 15) +
+                    index(m, 0) * index(m, 7) * index(m, 14) +
+                    index(m, 4) * index(m, 2) * index(m, 15) -
+                    index(m, 4) * index(m, 3) * index(m, 14) -
+                    index(m, 12) * index(m, 2) * index(m, 7) +
+                    index(m, 12) * index(m, 3) * index(m, 6),
+            index(m, 0) * index(m, 6) * index(m, 11) -
+                    index(m, 0) * index(m, 7) * index(m, 10) -
+                    index(m, 4) * index(m, 2) * index(m, 11) +
+                    index(m, 4) * index(m, 3) * index(m, 10) +
+                    index(m, 8) * index(m, 2) * index(m, 7) -
+                    index(m, 8) * index(m, 3) * index(m, 6),
     // Third Row
-        index(m, 4) * index(m, 9) * index(m, 15) -
-            index(m, 4) * index(m, 11) * index(m, 13) -
-            index(m, 8) * index(m, 5) * index(m, 15) +
-            index(m, 8) * index(m, 7) * index(m, 13) +
-            index(m, 12) * index(m, 5) * index(m, 11) -
-            index(m, 12) * index(m, 7) * index(m, 9),
-        -index(m, 0) * index(m, 9) * index(m, 15) +
-            index(m, 0) * index(m, 11) * index(m, 13) +
-            index(m, 8) * index(m, 1) * index(m, 15) -
-            index(m, 8) * index(m, 3) * index(m, 13) -
-            index(m, 12) * index(m, 1) * index(m, 11) +
-            index(m, 12) * index(m, 3) * index(m, 9),
-        index(m, 0) * index(m, 5) * index(m, 15) -
-            index(m, 0) * index(m, 7) * index(m, 13) -
-            index(m, 4) * index(m, 1) * index(m, 15) +
-            index(m, 4) * index(m, 3) * index(m, 13) +
-            index(m, 12) * index(m, 1) * index(m, 7) -
-            index(m, 12) * index(m, 3) * index(m, 5),
-        -index(m, 0) * index(m, 5) * index(m, 11) +
-            index(m, 0) * index(m, 7) * index(m, 9) +
-            index(m, 4) * index(m, 1) * index(m, 11) -
-            index(m, 4) * index(m, 3) * index(m, 9) -
-            index(m, 8) * index(m, 1) * index(m, 7) +
-            index(m, 8) * index(m, 3) * index(m, 5),
+            index(m, 4) * index(m, 9) * index(m, 15) -
+                    index(m, 4) * index(m, 11) * index(m, 13) -
+                    index(m, 8) * index(m, 5) * index(m, 15) +
+                    index(m, 8) * index(m, 7) * index(m, 13) +
+                    index(m, 12) * index(m, 5) * index(m, 11) -
+                    index(m, 12) * index(m, 7) * index(m, 9),
+            -index(m, 0) * index(m, 9) * index(m, 15) +
+                    index(m, 0) * index(m, 11) * index(m, 13) +
+                    index(m, 8) * index(m, 1) * index(m, 15) -
+                    index(m, 8) * index(m, 3) * index(m, 13) -
+                    index(m, 12) * index(m, 1) * index(m, 11) +
+                    index(m, 12) * index(m, 3) * index(m, 9),
+            index(m, 0) * index(m, 5) * index(m, 15) -
+                    index(m, 0) * index(m, 7) * index(m, 13) -
+                    index(m, 4) * index(m, 1) * index(m, 15) +
+                    index(m, 4) * index(m, 3) * index(m, 13) +
+                    index(m, 12) * index(m, 1) * index(m, 7) -
+                    index(m, 12) * index(m, 3) * index(m, 5),
+            -index(m, 0) * index(m, 5) * index(m, 11) +
+                    index(m, 0) * index(m, 7) * index(m, 9) +
+                    index(m, 4) * index(m, 1) * index(m, 11) -
+                    index(m, 4) * index(m, 3) * index(m, 9) -
+                    index(m, 8) * index(m, 1) * index(m, 7) +
+                    index(m, 8) * index(m, 3) * index(m, 5),
     // Fourth Row
-        -index(m, 4) * index(m, 9) * index(m, 14) +
-            index(m, 4) * index(m, 10) * index(m, 13) +
-            index(m, 8) * index(m, 5) * index(m, 14) -
-            index(m, 8) * index(m, 6) * index(m, 13) -
-            index(m, 12) * index(m, 5) * index(m, 10) +
-            index(m, 12) * index(m, 6) * index(m, 9),
-        index(m, 0) * index(m, 9) * index(m, 14) -
-            index(m, 0) * index(m, 10) * index(m, 13) -
-            index(m, 8) * index(m, 1) * index(m, 14) +
-            index(m, 8) * index(m, 2) * index(m, 13) +
-            index(m, 12) * index(m, 1) * index(m, 10) -
-            index(m, 12) * index(m, 2) * index(m, 9),
-        -index(m, 0) * index(m, 5) * index(m, 14) +
-            index(m, 0) * index(m, 6) * index(m, 13) +
-            index(m, 4) * index(m, 1) * index(m, 14) -
-            index(m, 4) * index(m, 2) * index(m, 13) -
-            index(m, 12) * index(m, 1) * index(m, 6) +
-            index(m, 12) * index(m, 2) * index(m, 5),
-        index(m, 0) * index(m, 5) * index(m, 10) -
-            index(m, 0) * index(m, 6) * index(m, 9) -
-            index(m, 4) * index(m, 1) * index(m, 10) +
-            index(m, 4) * index(m, 2) * index(m, 9) +
-            index(m, 8) * index(m, 1) * index(m, 6) -
-            index(m, 8) * index(m, 2) * index(m, 5));
+            -index(m, 4) * index(m, 9) * index(m, 14) +
+                    index(m, 4) * index(m, 10) * index(m, 13) +
+                    index(m, 8) * index(m, 5) * index(m, 14) -
+                    index(m, 8) * index(m, 6) * index(m, 13) -
+                    index(m, 12) * index(m, 5) * index(m, 10) +
+                    index(m, 12) * index(m, 6) * index(m, 9),
+            index(m, 0) * index(m, 9) * index(m, 14) -
+                    index(m, 0) * index(m, 10) * index(m, 13) -
+                    index(m, 8) * index(m, 1) * index(m, 14) +
+                    index(m, 8) * index(m, 2) * index(m, 13) +
+                    index(m, 12) * index(m, 1) * index(m, 10) -
+                    index(m, 12) * index(m, 2) * index(m, 9),
+            -index(m, 0) * index(m, 5) * index(m, 14) +
+                    index(m, 0) * index(m, 6) * index(m, 13) +
+                    index(m, 4) * index(m, 1) * index(m, 14) -
+                    index(m, 4) * index(m, 2) * index(m, 13) -
+                    index(m, 12) * index(m, 1) * index(m, 6) +
+                    index(m, 12) * index(m, 2) * index(m, 5),
+            index(m, 0) * index(m, 5) * index(m, 10) -
+                    index(m, 0) * index(m, 6) * index(m, 9) -
+                    index(m, 4) * index(m, 1) * index(m, 10) +
+                    index(m, 4) * index(m, 2) * index(m, 9) +
+                    index(m, 8) * index(m, 1) * index(m, 6) -
+                    index(m, 8) * index(m, 2) * index(m, 5));
 
     det = index(m, 0) * index(inv, 0) + index(m, 1) * index(inv, 4) +
-        index(m, 2) * index(inv, 8) + index(m, 3) * index(inv, 12);
+            index(m, 2) * index(inv, 8) + index(m, 3) * index(inv, 12);
     if (det == 0) {
         if (err) {
             *err = 1;
         }
         return (Matrix){
-            0
+                0
         };
     }
     det = 1 / det;

@@ -6,7 +6,8 @@
 
 typedef struct Object Object;
 
-struct __attribute__ ((packed)) Object {
+#pragma pack(push, 1)
+struct Object {
     Vector3 position;
     enum {
         OBJ_SPHERE
@@ -17,6 +18,7 @@ struct __attribute__ ((packed)) Object {
         } sphere;
     };
 };
+#pragma pack(pop)
 
 #define Object(position, type, object) ((Object){ position, type, object })
 

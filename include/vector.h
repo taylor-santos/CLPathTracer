@@ -10,7 +10,7 @@ extern size_t VEC_INDEX;
  * type checking.
  */
 #define vector_append(vec, item) ( \
-        VEC_INDEX = vector_grow((void**)&(vec), sizeof(item)), \
+        VEC_INDEX = vector_grow((void**)&(vec), sizeof((item))), \
         (vec)[VEC_INDEX] = (item) \
     )
 #define vector_length(vec) (vector_size(vec) / sizeof(*vec))
@@ -18,9 +18,11 @@ extern size_t VEC_INDEX;
 void
 vec_concat(void *v1_ptr, const void *v2);
 void *
-new_vector(void);
+new_vector(size_t capacity);
 void *
 init_vector(size_t count, size_t size);
+void *
+copy_vector(const void *);
 void
 delete_vector(void *);
 /* Add 'size' to the vector's length, reallocating if necessary. Returns the
