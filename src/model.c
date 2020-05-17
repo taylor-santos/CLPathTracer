@@ -73,6 +73,8 @@ read_file(char *buffer, size_t file_len, FILE *file) {
 
 static int
 tinyOBJ_parse(const char *filename, const char *path, kd *tree) {
+    printf("Parsing OBJ file...\n");
+    clock_t start = clock();
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         perror(filename);
@@ -131,7 +133,14 @@ tinyOBJ_parse(const char *filename, const char *path, kd *tree) {
     tinyobj_attrib_free(&attrib);
     tinyobj_shapes_free(shapes, num_shapes);
     tinyobj_materials_free(materials, num_materials);
+    clock_t end = clock();
+    printf("OBJ file parsed in %ld ms. Building kd-tree...\n",
+            (end - start) * 1000 / CLOCKS_PER_SEC);
+    start = clock();
     *tree = build_kd(tris, verts, norms, path);
+    end = clock();
+    printf("kd-tree built in %ld ms.\n",
+            (end - start) * 1000 / CLOCKS_PER_SEC);
     return 0;
 }
 
@@ -139,17 +148,11 @@ int
 LoadModel(const char *filename, kd *tree) {
     char *path = NULL;
     switch (get_filetype(filename, &path)) {
-        case MODEL_OBJ:
-            printf("Parsing OBJ file...\n");
-            clock_t start = clock();
+        case MODEL_OBJ:;
             int ret;
             if (tinyOBJ_parse(filename, path, tree)) {
                 ret = 1;
             } else {
-                clock_t end = clock();
-                printf("OBJ file parsed in %ld ms. Building kd-tree...\n",
-                        (end - start) * 1000 / CLOCKS_PER_SEC);
-                printf("kd-tree built.\n");
                 ret = 0;
             }
             free(path);

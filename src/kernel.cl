@@ -327,7 +327,7 @@ trace_ray(Ray r,
         global kdnode *kd_tree,
         int depth,
         color col,
-        vec_t str,
+        float str,
         bool isPrinter) {
     vec_t tmin, tmax, minHit;
     KD_SIDE near, far;
@@ -344,10 +344,12 @@ trace_ray(Ray r,
         vec3 normal = 0;
         int count = 0;
         while (index != -1) {
+            count++;
             while (kd_tree[index].type == KD_SPLIT) {
                 int axis = kd_tree[index].split.axis;
                 int cond = p1.scalar[axis] > kd_tree[index].split.value;
                 index = kd_tree[index].split.children[cond];
+                count++;
             }
             count += kd_tree[index].leaf.tri_count;
             if (kd_tree[index].leaf.tris != -1) {
@@ -392,7 +394,7 @@ trace_ray(Ray r,
                     kd_tree[index].min, kd_tree[index].max
             }, r, &tmin, &tmax, &far);
             if (didHit) {
-                if (tmin > minHit) {
+                if (tmin + 0.001 > minHit) {
                     break;
                 }
             }
@@ -411,15 +413,16 @@ trace_ray(Ray r,
         int B = count / 256 / 256 % 256;
         B = (256 - B) % 256;
         if (didHit) {
-            return (normal + 1) / 2;
+            return convert_color((normal + 1) / 2)/* / 2 +
+                new_color(R / 255.0, G / 255.5, B / 255.5) / 2*/;
 
             vec3 newOrig = r.orig + r.dir * minHit;
             vec3 newDir = normalize(r.dir - 2 * dot(r.dir, normal) * normal);
             newOrig += newDir * 0.0001f;
             Ray newRay = new_Ray(newOrig, newDir);
-            col = (1 - str) * col;
+            col = (1 - str) * col + str * convert_color((normal + 1) / 2);
             str *= 0.2f;
-            return (normal + 1) / 2;
+            //return convert_color((normal + 1) / 2);
             return trace_ray(newRay,
                     objects,
                     objcount,
@@ -433,10 +436,10 @@ trace_ray(Ray r,
                     str,
                     isPrinter);
         }
-        return new_vec3(R / 255.0, G / 255.5, B / 255.5);
+        //return new_color(R / 255.0, G / 255.5, B / 255.5)/2;
     }
     if (isPrinter) return 1;
-    return 0;
+    return (1-str)*col;
 }
 
 kernel void
@@ -483,7 +486,7 @@ render(write_only image2d_t image,
                     tris,
                     tri_indices,
                     kd_tree,
-                    1,
+                    2,
                     0,
                     1.0,
                     x_coord == resX / 2 && y_coord == resY / 2), 1.0

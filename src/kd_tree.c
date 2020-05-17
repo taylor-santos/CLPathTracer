@@ -5,10 +5,13 @@
 #include "kd_tree.h"
 #include "vector.h"
 
-#define DEPTH 30
+#define DEPTH 20
+#define NBINS 25
+#define EPS 0.0001
 
 typedef struct triangle {
     int index;
+    vec_t SA;
     Vector3 V[3], center;
 } triangle;
 
@@ -88,13 +91,8 @@ concat_tris(int *tris, const triangle *new_tris) {
     return tris; // May have moved if reallocated
 }
 
-static kd_index
-new_build_tree(kd *tree,
-        triangle *tris,
-        Vector3 min,
-        Vector3 max,
-        KD_AXIS axis,
-        int depth);
+static void
+SAH_tree(kd *tree, triangle *tris, Vector3 min, Vector3 max, int depth);
 
 static kd_index
 build_split(kd *tree,
@@ -118,7 +116,7 @@ build_split(kd *tree,
     Vector3 smax = vec_divide(vec_subtract(vmax, min), extents);
     for (int axis = KD_X; axis <= KD_Z; axis++) {
         if (smin.s[axis] < 0.8) {
-            vec_t v = vmin.s[axis];
+            vec_t v = vmin.s[axis] - EPS;
             kd_index new_index = vector_length(tree->node_vec);
             vector_append(tree->node_vec, new_split(min, max, v, axis));
             Vector3 low_max = max;
@@ -131,7 +129,7 @@ build_split(kd *tree,
                     vector_length(tree->node_vec);
         }
         if (smax.s[axis] < 0.8) {
-            vec_t v = vmax.s[axis];
+            vec_t v = vmax.s[axis] + EPS;
             kd_index new_index = vector_length(tree->node_vec);
             vector_append(tree->node_vec, new_split(min, max, v, axis));
             Vector3 high_min = min;
@@ -144,115 +142,110 @@ build_split(kd *tree,
                     vector_length(tree->node_vec);
         }
     }
-    new_build_tree(tree, tris, min, max, next_axis, depth);
+    //new_build_tree(tree, tris, min, max, next_axis, depth);
+    SAH_tree(tree, tris, min, max, depth);
     return index;
 }
 
-static kd_index
-new_build_tree(kd *tree,
-        triangle *tris,
-        Vector3 min,
-        Vector3 max,
-        KD_AXIS axis,
-        int depth) {
+static void
+SAH_tree(kd *tree, triangle *tris, Vector3 min, Vector3 max, int depth) {
     size_t num_tris = vector_length(tris);
-    kd_index index = vector_length(tree->node_vec);
-    if (num_tris <= 1 || depth == 0) {
-        if (depth != 0) {
-            build_split(tree, tris, min, max, (axis + 1) % 3, 0);
-            return index;
-        }
-        kd_index tri_index = (kd_index)vector_length(tree->tri_indices);
+    if (num_tris <= 10 || depth == 0) {
+        kd_index tri_index = vector_length(tree->tri_indices);
         vector_append(tree->node_vec, new_leaf(min, max, tri_index, num_tris));
         tree->tri_indices = concat_tris(tree->tri_indices, tris);
-        return index;
+        return;
     }
-    /*
-    Vector3 extents = vec_subtract(max, min);
-
-    vec_t x = vec_x(extents), y = vec_y(extents), z = vec_z(extents);
-    KD_AXIS axis;
-    if (x >= y) {
-        if (x >= z) {
-            axis = KD_X;
-        } else { // x < z
-            axis = KD_Z;
+    Vector3 ext = vec_subtract(max, min);
+    int found = 0;
+    vec_t best_h;
+    KD_AXIS best_axis;
+    vec_t best_v;
+    for (KD_AXIS axis = 0; axis < 3; axis++) {
+        vec_t e = ext.s[axis];
+        if (e < EPS) {
+            continue;
         }
-    } else { // x < y
-        if (z >= y) {
-            axis = KD_Z;
-        } else { // z < y
-            axis = KD_Y;
-        }
-    }
-     */
-    //qsort_s(tris, num_tris, sizeof(*tris), tri_comp, &axis);
-    //vec_t median = tris[num_tris / 2].center.s[axis];
-    //vec_t *values = new_vector(3 * num_tris * sizeof(*values));
-    vec_t value = 0;
-    int count = 0;
-    for (size_t i = 0; i < num_tris; i++) {
-        for (size_t j = 0; j < 3; j++) {
-            vec_t v = tris[i].V[j].s[axis];
-            value += v;
-            count++;
-        }
-    }
-    //qsort(values, num_values, sizeof(*values), cmp_VEC_TYPE);
-    //vec_t median = values[num_values / 2] + 0.0001f;
-    vec_t median = value / (vec_t)count;
-    if (median < min.s[axis] + 0.02 || median > max.s[axis] - 0.02) {
-        build_split(tree, tris, min, max, (axis + 1) % 3, depth - 1);
-        return index;
-        //kd_index tri_index = (kd_index)vector_length(tree->tri_vec);
-        //vector_append(tree->node_vec, new_leaf(min, max, tri_index,
-        //num_tris));
-        //tree->tri_vec = concat_tris(tree->tri_vec, tris);
-        //return index;
-    }
-    triangle *low_tris = new_vector(num_tris * sizeof(*low_tris));
-    triangle *high_tris = new_vector(num_tris * sizeof(*high_tris));
-    Vector3 vmin = max, vmax = min;
-    for (size_t i = 0; i < num_tris; i++) {
-        int low = 0, high = 0;
-        for (int j = 0; j < 3; j++) {
-            if (tris[i].V[j].s[axis] <= median) {
-                low = 1;
+        for (int i = 1; i < NBINS; i++) {
+            vec_t v = min.s[axis] + (vec_t)i * e / NBINS;
+            vec_t SL = 0, SR = 0;
+            int NL = 0, NR = 0;
+            for (size_t t = 0; t < num_tris; t++) {
+                triangle tri = tris[t];
+                int isL = 0, isR = 0;
+                for (int j = 0; j < 3 && (!isL || !isR); j++) {
+                    if (tri.V[j].s[axis] <= v) {
+                        isL = 1;
+                    }
+                    if (tri.V[j].s[axis] >= v) {
+                        isR = 1;
+                    }
+                }
+                if (isL) {
+                    NL++;
+                    SL += tri.SA;
+                }
+                if (isR) {
+                    NR++;
+                    SR += tri.SA;
+                }
+                if (found && NL * SL + NR * SR >= best_h) {
+                    break;
+                }
             }
-            if (tris[i].V[j].s[axis] >= median) {
-                high = 1;
+            if (!found || NL * SL + NR * SR < best_h) {
+                found = 1;
+                best_h = NL * SL + NR * SR;
+                best_axis = axis;
+                best_v = v;
             }
-            vmin = vec_min(vmin, tris[i].V[j]);
-            vmax = vec_max(vmax, tris[i].V[j]);
-        }
-        if (low) {
-            vector_append(low_tris, tris[i]);
-        }
-        if (high) {
-            vector_append(high_tris, tris[i]);
         }
     }
+    if (!found || best_v <= min.s[best_axis] || max.s[best_axis] <= best_v) {
+        kd_index tri_index = vector_length(tree->tri_indices);
+        vector_append(tree->node_vec, new_leaf(min, max, tri_index, num_tris));
+        tree->tri_indices = concat_tris(tree->tri_indices, tris);
+        return;
+    }
+    triangle *L_tris = new_vector(sizeof(*L_tris) * num_tris),
+            *R_tris = new_vector(sizeof(*R_tris) * num_tris);
+    int overlap = 0;
+    for (size_t i = 0; i < num_tris; i++) {
+        triangle tri = tris[i];
+        int isL = 0, isR = 0;
+        for (int j = 0; j < 3 && (!isL || !isR); j++) {
+            if (tri.V[j].s[best_axis] <= best_v + EPS) {
+                isL = 1;
+            }
+            if (tri.V[j].s[best_axis] >= best_v - EPS) {
+                isR = 1;
+            }
+        }
+        if (isL) {
+            vector_append(L_tris, tri);
+        }
+        if (isR) {
+            vector_append(R_tris, tri);
+        }
+    }
+    Vector3 L_max = max, R_min = min;
+    L_max.s[best_axis] = R_min.s[best_axis] = best_v;
 
-    Vector3 low_max = max, high_min = min;
-    low_max.s[axis] = high_min.s[axis] = median;
-    vector_append(tree->node_vec, new_split(min, max, median, axis));
-    kd_index low_index = build_split(tree,
-            low_tris,
-            min,
-            low_max,
-            (axis + 1) % 3,
-            depth - 1);
-    kd_index high_index = build_split(tree,
-            high_tris,
-            high_min,
-            max,
-            (axis + 1) % 3,
-            depth - 1);
-    delete_vector(low_tris);
-    delete_vector(high_tris);
-    tree->node_vec[index].split.children[0] = low_index;
-    tree->node_vec[index].split.children[1] = high_index;
-    return index;
+    kd_index index = vector_length(tree->node_vec);
+    vector_append(tree->node_vec, new_split(min, max, best_v, best_axis));
+
+    kd_index L_index = vector_length(tree->node_vec);
+    //SAH_tree(tree, L_tris, min, L_max, depth - 1);
+    build_split(tree, L_tris, min, L_max, -1, depth - 1);
+    delete_vector(L_tris);
+
+    kd_index R_index = vector_length(tree->node_vec);
+    //SAH_tree(tree, R_tris, R_min, max, depth - 1);
+    build_split(tree, R_tris, R_min, max, -1, depth - 1);
+    delete_vector(R_tris);
+
+    tree->node_vec[index].split.children[0] = L_index;
+    tree->node_vec[index].split.children[1] = R_index;
 }
 
 kd
@@ -272,15 +265,18 @@ build_kd(cl_int3 *tris, Vector3 *verts, Vector3 *norms, const char *path) {
         Vector3 A = verts[tris[3 * i + 0].s[0]],
                 B = verts[tris[3 * i + 1].s[0]],
                 C = verts[tris[3 * i + 2].s[0]];
+        Vector3 S1 = vec_subtract(B, A), S2 = vec_subtract(C, A);
+        Vector3 N = vec_cross(S1, S2);
         min = vec_min(min, vec_min(vec_min(A, B), C));
         max = vec_max(max, vec_max(vec_max(A, B), C));
         vector_append(triangles, ((triangle){
-                i, {
+                i, vec_length(N) / 2, {
                         A, B, C
                 }, vec_scaled(vec_add(vec_add(A, B), C), 1.0f / 3.0f)
         }));
     }
-    new_build_tree(&tree, triangles, min, max, KD_X, DEPTH);
+    SAH_tree(&tree, triangles, min, max, DEPTH);
+    //new_build_tree(&tree, triangles, min, max, KD_X, DEPTH);
     delete_vector(triangles);
     printf("%d %d %f\n",
             leafTriCount,
@@ -299,18 +295,30 @@ build_kd(cl_int3 *tris, Vector3 *verts, Vector3 *norms, const char *path) {
         sprintf(kdpath, "%s.kd", path);
         FILE *file = fopen(kdpath, "wb");
         free(kdpath);
+
         size_t node_len = vector_length(tree.node_vec);
         fwrite(&node_len, sizeof(node_len), 1, file);
         fwrite(tree.node_vec, sizeof(*tree.node_vec), node_len, file);
+
         size_t vert_len = vector_length(tree.vert_vec);
         fwrite(&vert_len, sizeof(vert_len), 1, file);
         fwrite(tree.vert_vec, sizeof(*tree.vert_vec), vert_len, file);
+
         size_t norm_len = vector_length(tree.norm_vec);
         fwrite(&norm_len, sizeof(norm_len), 1, file);
         fwrite(tree.norm_vec, sizeof(*tree.norm_vec), norm_len, file);
+
+        size_t tri_index_len = vector_length(tree.tri_indices);
+        fwrite(&tri_index_len, sizeof(tri_index_len), 1, file);
+        fwrite(tree.tri_indices,
+                sizeof(*tree.tri_indices),
+                tri_index_len,
+                file);
+
         size_t tri_len = vector_length(tree.tri_vec);
         fwrite(&tri_len, sizeof(tri_len), 1, file);
         fwrite(tree.tri_vec, sizeof(*tree.tri_vec), tri_len, file);
+
         fclose(file);
     }
     return tree;
@@ -334,6 +342,14 @@ parse_kd(const char *filename, kd *tree) {
     fread(&norm_len, sizeof(norm_len), 1, file);
     tree->norm_vec = init_vector(norm_len, sizeof(*tree->norm_vec));
     fread((Vector4 *)tree->norm_vec, sizeof(*tree->norm_vec), norm_len, file);
+
+    size_t tri_index_len;
+    fread(&tri_index_len, sizeof(tri_index_len), 1, file);
+    tree->tri_indices = init_vector(tri_index_len, sizeof(*tree->tri_indices));
+    fread((Vector4 *)tree->tri_indices,
+            sizeof(*tree->tri_indices),
+            tri_index_len,
+            file);
 
     size_t tri_len;
     fread(&tri_len, sizeof(tri_len), 1, file);

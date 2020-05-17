@@ -19,9 +19,9 @@ cl_mem
 CLCreateBuffer(cl_context context, size_t size);
 void
 CLEnqueueKernel(cl_uint dim,
-    size_t *global_size,
-    size_t *local_size,
-    cl_command_queue queue,
-    cl_kernel kernel);
+        size_t *global_size,
+        size_t *local_size,
+        cl_command_queue queue,
+        cl_kernel kernel);
 
 #endif//CLHANDLER_H

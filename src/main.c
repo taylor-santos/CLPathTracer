@@ -2,14 +2,12 @@
 
 #include "game.h"
 #include "vector.h"
-#include "kd_tree.h"
 
 #define KERNEL_FILENAME "src/kernel.cl"
 #define KERNEL_NAME "render"
 
 int
 main(int argc, char **argv) {
-    printf("%zu\n", sizeof(kdnode));
     const char **models = new_vector(((size_t)argc - 1) * sizeof(*models));
     for (int i = 1; i < argc; i++) {
         vector_append(models, argv[i]);
