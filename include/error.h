@@ -6,7 +6,6 @@
 
 const char *
 err_string(cl_int error);
-
 void
 handle_err(cl_int err, const char *file, int line);
 

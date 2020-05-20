@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include "physics.h"
-#include "vector.h"
+#include "list.h"
 
 #define REALLOC_SIZE 16
 
@@ -25,11 +25,10 @@ static size_t ptr_count = 0;
 void
 AddPhysObject(Vector3 *position, Vector3 *velocity) {
     if (objects == NULL) {
-        objects = new_vector();
+        objects = new_list(sizeof(*objects));
     }
-    vector_append(objects, PhysObject, ((PhysObject){
-        position,
-        velocity
+    vector_append(objects, ((PhysObject){
+            position, velocity
     }));
     obj_count++;
 }
@@ -37,15 +36,12 @@ AddPhysObject(Vector3 *position, Vector3 *velocity) {
 void
 AddPhysPtr(void *pos_base, void *pos_ptr, void *vel_base, void *vel_ptr) {
     if (ptrs == NULL) {
-        ptrs = new_vector();
+        ptrs = new_list(sizeof(*ptrs));
     }
     ptrdiff_t pos_diff = (char *)pos_ptr - *(char **)pos_base;
     ptrdiff_t vel_diff = (char *)vel_ptr - *(char **)vel_base;
-    vector_append(ptrs, PhysPtr, ((PhysPtr){
-        pos_base,
-        pos_diff,
-        vel_base,
-        vel_diff
+    vector_append(ptrs, ((PhysPtr){
+            pos_base, pos_diff, vel_base, vel_diff
     }));
     ptr_count++;
 }
@@ -54,7 +50,7 @@ void
 PhysStep(double stepSize) {
     for (size_t i = 0; i < obj_count; i++) {
         *objects[i].position = vec_add(*objects[i].position,
-            vec_scaled(*objects[i].velocity, stepSize));
+                vec_scaled(*objects[i].velocity, stepSize));
     }
     for (size_t i = 0; i < ptr_count; i++) {
         char *ptr = *ptrs[i].pos_ptr;
@@ -69,5 +65,6 @@ PhysStep(double stepSize) {
 
 void
 PhysTerminate(void) {
-    free(objects);
+    delete_list(objects);
+    delete_list(ptrs);
 }

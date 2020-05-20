@@ -3,10 +3,12 @@
 
 #include <CL/cl_gl.h>
 
+#include "vector.h"
+
 typedef struct Matrix Matrix;
 
 struct Matrix {
-    cl_double4 rows[4];
+    Vector4 rows[4];
 };
 
 #define Matrix(\
@@ -22,17 +24,17 @@ struct Matrix {
         } }
 
 void
-mat_set(Matrix *, unsigned int n, unsigned int m, double value);
-double
+mat_set(Matrix *, unsigned int n, unsigned int m, vec_t value);
+vec_t
 mat_get(Matrix, unsigned int n, unsigned int m);
 Matrix
 mat_add(Matrix, Matrix);
 Matrix
 mat_multiply(Matrix, Matrix);
 Matrix
-mat_scaled(Matrix, double);
+mat_scaled(Matrix, vec_t);
 Matrix *
-mat_scale(Matrix *, double);
+mat_scale(Matrix *, vec_t);
 Matrix
 mat_inverse(Matrix, int *err);
 

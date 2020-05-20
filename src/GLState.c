@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <kd_tree.h>
 
 #include "CLState.h"
 #include "GLHandler.h"
@@ -19,11 +20,11 @@ static struct {
 static void
 resize_callback(GLFWwindow *wind, int new_width, int new_height) {
     State.width = new_width >= 1
-        ? new_width
-        : 1;
+            ? new_width
+            : 1;
     State.height = new_height >= 1
-        ? new_height
-        : 1;
+            ? new_height
+            : 1;
     GLResizeTexture(&State.texture, State.width, State.height);
     CLDeleteImage();
     CLCreateImage(State.texture);
@@ -80,6 +81,11 @@ GLSetCameraMatrix(Matrix matrix) {
 void
 GLSetObjects(Object *vec_objects, size_t size) {
     CLSetObjects(vec_objects, size);
+}
+
+void
+GLSetMeshes(kd *models) {
+    CLSetMeshes(models);
 }
 
 int
