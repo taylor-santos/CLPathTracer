@@ -2,7 +2,7 @@
 #define OBJECT_H
 
 #include <CL/cl_gl.h>
-#include "vector3.h"
+#include "vector.h"
 
 typedef struct Object Object;
 

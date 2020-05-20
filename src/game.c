@@ -6,7 +6,7 @@
 #include "camera.h"
 #include "physics.h"
 #include "object.h"
-#include "vector.h"
+#include "list.h"
 #include "kd_tree.h"
 #include "model.h"
 
@@ -20,12 +20,12 @@ static struct {
         double x, y;
     } mouseSensitivity;
     double movementSpeed;
-    double sprintSpeed;
-    double walkSpeed;
+    double sprintModifier;
+    double walkModifier;
 } GameProperties = {
         {
                 2, 2
-        }, 1, 10, 0.1
+        }, 20, 3, 0.3
 };
 static struct {
     double time;
@@ -40,7 +40,7 @@ static struct {
     } moveKey;
     Camera camera;
     Vector3 camVel;
-} State/*, *stptr = &State*/;
+} State;
 static Object *vec_objects;
 static kd *vec_models;
 static int prevScreenPos[2], prevScreenSize[2];
@@ -174,8 +174,8 @@ void
 GameTerminate(void) {
     GLTerminate();
     PhysTerminate();
-    delete_vector(vec_objects);
-    delete_vector(vec_models);
+    delete_list(vec_objects);
+    delete_list(vec_models);
 }
 
 static void
@@ -213,7 +213,7 @@ update_camera(void) {
 
 static void
 update_objects(void) {
-    GLSetObjects(vec_objects, vector_size(vec_objects));
+    GLSetObjects(vec_objects, list_size(vec_objects));
 }
 
 void
@@ -221,11 +221,13 @@ StartGameLoop(void) {
     double speed;
     Vector3 up, right, forward;
     while (GLRender()) {
-        speed = State.moveKey.sprint
-                ? GameProperties.sprintSpeed
-                : State.moveKey.walk
-                        ? GameProperties.walkSpeed
-                        : GameProperties.movementSpeed;
+        speed = GameProperties.movementSpeed;
+        if (State.moveKey.sprint) {
+            speed *= GameProperties.sprintModifier;
+        }
+        if (State.moveKey.walk) {
+            speed *= GameProperties.walkModifier;
+        }
         up = Vector3_up;
         right = vec_cross(up, State.camera.Forward);
         vec_normalize(&right);
@@ -246,7 +248,7 @@ GameInit(const char *kernel_filename,
         const char *kernel_name,
         const char *const *models) {
     size_t model_count = vector_length(models);
-    vec_models = new_vector(model_count * sizeof(*vec_models));
+    vec_models = new_list(model_count * sizeof(*vec_models));
     for (size_t i = 0; i < model_count; i++) {
         kd tree;
         if (LoadModel(models[i], &tree)) {
@@ -274,5 +276,5 @@ GameInit(const char *kernel_filename,
             0.1, 1, M_PI / 3, Vector3(0, 0.1, -0.2), Vector3_forward
     };
     AddPhysObject(&State.camera.Position, &State.camVel);
-    vec_objects = new_vector(0);
+    vec_objects = new_list(0);
 }

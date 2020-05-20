@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include "physics.h"
-#include "vector.h"
+#include "list.h"
 
 #define REALLOC_SIZE 16
 
@@ -25,7 +25,7 @@ static size_t ptr_count = 0;
 void
 AddPhysObject(Vector3 *position, Vector3 *velocity) {
     if (objects == NULL) {
-        objects = new_vector(sizeof(*objects));
+        objects = new_list(sizeof(*objects));
     }
     vector_append(objects, ((PhysObject){
             position, velocity
@@ -36,7 +36,7 @@ AddPhysObject(Vector3 *position, Vector3 *velocity) {
 void
 AddPhysPtr(void *pos_base, void *pos_ptr, void *vel_base, void *vel_ptr) {
     if (ptrs == NULL) {
-        ptrs = new_vector(sizeof(*ptrs));
+        ptrs = new_list(sizeof(*ptrs));
     }
     ptrdiff_t pos_diff = (char *)pos_ptr - *(char **)pos_base;
     ptrdiff_t vel_diff = (char *)vel_ptr - *(char **)vel_base;
@@ -65,6 +65,6 @@ PhysStep(double stepSize) {
 
 void
 PhysTerminate(void) {
-    delete_vector(objects);
-    delete_vector(ptrs);
+    delete_list(objects);
+    delete_list(ptrs);
 }

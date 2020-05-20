@@ -1,37 +1,56 @@
 #ifndef VECTOR_H
 #define VECTOR_H
 
-#include <stddef.h>
+#include <CL/cl_gl.h>
 
-extern size_t VEC_INDEX;
+#define vec_t float
 
-/* Add 'item' to the end of the vector, resizing if necessary. Note: the
- * vector must be defined as a pointer to 'item's type, to allow for proper
- * type checking.
- */
-#define vector_append(vec, item) ( \
-        VEC_INDEX = vector_grow((void**)&(vec), sizeof((item))), \
-        (vec)[VEC_INDEX] = (item) \
-    )
-#define vector_length(vec) (vector_size(vec) / sizeof(*vec))
-#define vector_concat(v1, v2) vec_concat((void**)&v1, v2)
-void
-vec_concat(void *v1_ptr, const void *v2);
-void *
-new_vector(size_t capacity);
-void *
-init_vector(size_t count, size_t size);
-void *
-copy_vector(const void *);
-void
-delete_vector(void *);
-/* Add 'size' to the vector's length, reallocating if necessary. Returns the
- * vector's old length divided by 'size'. This can be used to index into the
- * vector at the newly added space. (see: vector_append())
- */
-size_t
-vector_grow(void **vec_ptr, size_t size);
-size_t
-vector_size(const void *);
+#define CONCAT2(a, b, c) a ## b ## c
+#define CONCAT(a, b, c) CONCAT2(a, b, c)
+#define VEC(dim) CONCAT(cl_, vec_t, dim)
+
+typedef VEC(3) Vector3;
+typedef VEC(4) Vector4;
+
+#define Vector3(x, y, z) (Vector3){ {x, y, z} }
+#define Vector4(x, y, z, w) (Vector4){ {x, y, z, w} }
+#define vec_x(v) ((v).s[0])
+#define vec_y(v) ((v).s[1])
+#define vec_z(v) ((v).s[2])
+
+#define Vector3_zero Vector3(0, 0, 0)
+#define Vector3_forward Vector3(0, 0, 1)
+#define Vector3_up Vector3(0, 1, 0)
+
+vec_t
+vec_dot(Vector3, Vector3);
+vec_t
+vec_length_squared(Vector3);
+vec_t
+vec_length(Vector3);
+Vector3
+vec_normalized(Vector3);
+Vector3 *
+vec_normalize(Vector3 *);
+Vector3
+vec_add(Vector3, Vector3);
+Vector3
+vec_subtract(Vector3, Vector3);
+Vector3
+vec_cross(Vector3, Vector3);
+Vector3
+vec_negated(Vector3);
+Vector3 *
+vec_negate(Vector3 *);
+Vector3
+vec_scaled(Vector3, vec_t);
+Vector3 *
+vec_scale(Vector3 *, vec_t);
+Vector3
+vec_divide(Vector3, Vector3);
+Vector3
+vec_min(Vector3, Vector3);
+Vector3
+vec_max(Vector3, Vector3);
 
 #endif//VECTOR_H

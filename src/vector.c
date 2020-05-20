@@ -1,114 +1,113 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include <math.h>
 
-typedef struct data data;
+#include "vector.h"
 
-size_t VEC_INDEX;
-
-struct data {
-    size_t capacity;
-    size_t length;
-    char data[];
-};
-
-static data *
-get_vector(void *vec) {
-    data *data = vec;
-    return &data[-1];
+vec_t
+vec_dot(Vector3 a, Vector3 b) {
+    return vec_x(a) * vec_x(b) + vec_y(a) * vec_y(b) + vec_z(a) * vec_z(b);
 }
 
-static const data *
-get_const_vector(const void *vec) {
-    const data *data = vec;
-    return &data[-1];
+vec_t
+vec_length_squared(Vector3 v) {
+    return vec_x(v) * vec_x(v) + vec_y(v) * vec_y(v) + vec_z(v) * vec_z(v);
 }
 
-void *
-new_vector(size_t capacity) {
-    data *vector;
-    if (NULL == (vector = malloc(sizeof(*vector) + capacity))) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-    *vector = (data){
-            capacity, 0
-    };
-    return vector->data;
+vec_t
+vec_length(Vector3 v) {
+    return (vec_t)sqrt((double)vec_length_squared(v));
 }
 
-void *
-init_vector(size_t count, size_t size) {
-    data *vector;
-    if (NULL == (vector = malloc(sizeof(*vector) + count * size))) {
-        perror("malloc");
-        exit(EXIT_FAILURE);
-    }
-    *vector = (data){
-            count * size, count * size
-    };
-    return vector->data;
+Vector3 *
+vec_normalize(Vector3 *v) {
+    vec_t length = vec_length(*v);
+    vec_x(*v) /= length;
+    vec_y(*v) /= length;
+    vec_z(*v) /= length;
+    return v;
 }
 
-void *
-copy_vector(const void *v) {
-    const data *vector = get_const_vector(v);
-    void *copy = init_vector(1, vector->length);
-    memcpy(copy, vector->data, vector->length);
-    data *copy_data = get_vector(copy);
-    copy_data->length = vector->length;
-    return copy;
+Vector3
+vec_normalized(Vector3 v) {
+    return *vec_normalize(&v);
 }
 
-void
-delete_vector(void *vector) {
-    if (vector == NULL) {
-        return;
-    }
-    data *vec = get_vector(vector);
-    free(vec);
+Vector3
+vec_add(Vector3 a, Vector3 b) {
+    return Vector3(vec_x(a) + vec_x(b),
+            vec_y(a) + vec_y(b),
+            vec_z(a) + vec_z(b));
 }
 
-static void
-vector_realloc(data **vec_ptr, size_t size) {
-    void *new_vec = realloc(*vec_ptr, sizeof(data) + size);
-    if (new_vec != *vec_ptr) {
-        printf("Reallocating %zu\n", size);
-    }
-    if (new_vec == NULL) {
-        free(*vec_ptr);
-        perror("realloc");
-        exit(EXIT_FAILURE);
-    }
-    *vec_ptr = new_vec;
-    (*vec_ptr)->capacity = size;
+Vector3
+vec_subtract(Vector3 a, Vector3 b) {
+    return Vector3(vec_x(a) - vec_x(b),
+            vec_y(a) - vec_y(b),
+            vec_z(a) - vec_z(b));
 }
 
-void
-vec_concat(void **v1_ptr, const void *v2) {
-    data *vec1 = get_vector(*v1_ptr);
-    const data *vec2 = get_const_vector(v2);
-    size_t s1 = vec1->length, s2 = vec2->length;
-    vector_realloc(&vec1, s1 + s2);
-    memcpy(vec1->data + s1, vec2->data, s2);
-    vec1->length = s1 + s2;
-    vec1->capacity = s1 + s2;
-    *v1_ptr = vec1->data;
+Vector3
+vec_cross(Vector3 a, Vector3 b) {
+    vec_t x = vec_y(a) * vec_z(b) - vec_z(a) * vec_y(b);
+    vec_t y = vec_z(a) * vec_x(b) - vec_x(a) * vec_z(b);
+    vec_t z = vec_x(a) * vec_y(b) - vec_y(a) * vec_x(b);
+    return Vector3(x, y, z);
 }
 
-size_t
-vector_grow(void **vec_ptr, size_t size) {
-    data *vector = get_vector(*vec_ptr);
-    if (vector->length + size > vector->capacity) {
-        vector_realloc(&vector, vector->capacity * 2 + vector->length + size);
-    }
-    vector->length += size;
-    *vec_ptr = vector->data;
-    return vector->length / size - 1;
+Vector3 *
+vec_negate(Vector3 *v) {
+    vec_x(*v) = -vec_x(*v);
+    vec_y(*v) = -vec_y(*v);
+    vec_z(*v) = -vec_z(*v);
+    return v;
 }
 
-size_t
-vector_size(const void *vec) {
-    const data *vector = get_const_vector(vec);
-    return vector->length;
+Vector3
+vec_negated(Vector3 v) {
+    return *vec_negate(&v);
+}
+
+Vector3 *
+vec_scale(Vector3 *v, vec_t factor) {
+    vec_x(*v) *= factor;
+    vec_y(*v) *= factor;
+    vec_z(*v) *= factor;
+    return v;
+}
+
+Vector3
+vec_scaled(Vector3 v, vec_t factor) {
+    return *vec_scale(&v, factor);
+}
+
+Vector3
+vec_divide(Vector3 a, Vector3 b) {
+    return Vector3(vec_x(a) / vec_x(b),
+            vec_y(a) / vec_y(b),
+            vec_z(a) / vec_z(b));
+}
+
+Vector3
+vec_min(Vector3 a, Vector3 b) {
+    return Vector3(vec_x(a) < vec_x(b)
+            ? vec_x(a)
+            : vec_x(b),
+            vec_y(a) < vec_y(b)
+                    ? vec_y(a)
+                    : vec_y(b),
+            vec_z(a) < vec_z(b)
+                    ? vec_z(a)
+                    : vec_z(b));
+}
+
+Vector3
+vec_max(Vector3 a, Vector3 b) {
+    return Vector3(vec_x(a) > vec_x(b)
+            ? vec_x(a)
+            : vec_x(b),
+            vec_y(a) > vec_y(b)
+                    ? vec_y(a)
+                    : vec_y(b),
+            vec_z(a) > vec_z(b)
+                    ? vec_z(a)
+                    : vec_z(b));
 }

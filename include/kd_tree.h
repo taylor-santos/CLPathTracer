@@ -1,7 +1,7 @@
 #ifndef KD_TREE_H
 #define KD_TREE_H
 
-#include "vector3.h"
+#include "vector.h"
 
 typedef struct kd kd;
 typedef struct kdnode kdnode;

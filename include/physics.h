@@ -1,7 +1,7 @@
 #ifndef PHYSICS_H
 #define PHYSICS_H
 
-#include "vector3.h"
+#include "vector.h"
 
 void
 AddPhysObject(Vector3 *position, Vector3 *velocity);

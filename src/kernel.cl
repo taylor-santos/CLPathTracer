@@ -144,30 +144,7 @@ hit_AABB(vec3 bounds[],
 }
 
 void
-hit_AABB2(vec3 bounds[], Ray r, vec_t *tmax, KD_SIDE *far) {
-    vec_t tymin, tymax, tzmin, tzmax;
-
-    *far = 1 - r.sign.x;
-    *tmax = (bounds[1 - r.sign.x].x - r.orig.x) * r.invdir.x;
-    tymin = (bounds[r.sign.y].y - r.orig.y) * r.invdir.y;
-    tymax = (bounds[1 - r.sign.y].y - r.orig.y) * r.invdir.y;
-
-    if (tymax < *tmax) {
-        *tmax = tymax;
-        *far = 3 - r.sign.y;
-    }
-
-    tzmin = (bounds[r.sign.z].z - r.orig.z) * r.invdir.z;
-    tzmax = (bounds[1 - r.sign.z].z - r.orig.z) * r.invdir.z;
-
-    if (tzmax < *tmax) {
-        *tmax = tzmax;
-        *far = 5 - r.sign.z;
-    }
-}
-
-void
-hit_AABB3(vec3 bounds[], Ray r, vec_t *tmin, vec_t *tmax, KD_SIDE *far) {
+traverse_AABB(vec3 bounds[], Ray r, vec_t *tmin, vec_t *tmax, KD_SIDE *far) {
     vec_t tymin, tymax, tzmin, tzmax;
 
     *far = 1 - r.sign.x;
@@ -390,13 +367,19 @@ trace_ray(Ray r,
                     }
                 }
             }
-            hit_AABB3((vec3[]){
+            traverse_AABB((vec3[]){
                     kd_tree[index].min, kd_tree[index].max
             }, r, &tmin, &tmax, &far);
-            if (didHit) {
-                if (tmin + 0.001 > minHit) {
-                    break;
-                }
+            /*
+            col = (1-str)*col + str*(1+new_color(
+                (far == KD_LEFT) - (far == KD_RIGHT),
+                (far == KD_DOWN) - (far == KD_UP),
+                (far == KD_BACK) - (far == KD_FRONT)
+            ))/2;
+            str *= 0.8;
+            */
+            if (didHit && tmin + 0.001 > minHit) {
+                break;
             }
             index = kd_tree[index].leaf.ropes[far];
             p1.vector = r.orig + tmax * r.dir;
@@ -404,14 +387,11 @@ trace_ray(Ray r,
                 break;
             }
         }
-        if (isPrinter){
-            return 1;
-        }
-        int G = count % 256;
-        int R = count / 256 % 256;
-        R = (256 - R) % 256;
-        int B = count / 256 / 256 % 256;
-        B = (256 - B) % 256;
+        //int G = count % 256;
+        //int R = count / 256 % 256;
+        //R = (256 - R) % 256;
+        //int B = count / 256 / 256 % 256;
+        //B = (256 - B) % 256;
         if (didHit) {
             return convert_color((normal + 1) / 2)/* / 2 +
                 new_color(R / 255.0, G / 255.5, B / 255.5) / 2*/;
@@ -438,8 +418,7 @@ trace_ray(Ray r,
         }
         //return new_color(R / 255.0, G / 255.5, B / 255.5)/2;
     }
-    if (isPrinter) return 1;
-    return (1-str)*col;
+    return (1-str)*col + str;
 }
 
 kernel void

@@ -3,9 +3,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "vector3.h"
-#include "model.h"
 #include "vector.h"
+#include "model.h"
+#include "list.h"
 
 #define TINYOBJ_LOADER_C_IMPLEMENTATION
 #include "tinyobj_loader_c.h"
@@ -106,14 +106,14 @@ tinyOBJ_parse(const char *filename, const char *path, kd *tree) {
     if (ret != TINYOBJ_SUCCESS) {
         return 1;
     }
-    Vector3 *verts = new_vector(sizeof(*verts) * attrib.num_vertices);
+    Vector3 *verts = new_list(sizeof(*verts) * attrib.num_vertices);
     for (unsigned int i = 0; i < attrib.num_vertices; i++) {
         vector_append(verts,
                 Vector3(attrib.vertices[3 * i + 0],
                         attrib.vertices[3 * i + 1],
                         attrib.vertices[3 * i + 2]));
     }
-    cl_int3 *tris = new_vector(sizeof(*tris) * attrib.num_faces);
+    cl_int3 *tris = new_list(sizeof(*tris) * attrib.num_faces);
     for (unsigned int i = 0; i < attrib.num_faces; i++) {
         vector_append(tris, ((cl_int3){
                 {
@@ -123,7 +123,7 @@ tinyOBJ_parse(const char *filename, const char *path, kd *tree) {
                 }
         }));
     }
-    Vector3 *norms = new_vector(sizeof(*norms) * attrib.num_normals);
+    Vector3 *norms = new_list(sizeof(*norms) * attrib.num_normals);
     for (unsigned int i = 0; i < attrib.num_normals; i++) {
         vector_append(norms,
                 Vector3(attrib.normals[3 * i + 0],
