@@ -5,7 +5,7 @@
 #include "GLHandler.h"
 
 #define WINDOW_NAME "OpenCL Path Tracer"
-#define VSYNC 1
+#define VSYNC       1
 
 static void
 error_callback(int error, const char *msg) {
@@ -24,23 +24,18 @@ GLInitGLFW(void) {
 GLFWmonitor *
 GLGetMonitor(void) {
     GLFWmonitor **monitors;
-    int monitor_count;
+    int           monitor_count;
 
     monitors = glfwGetMonitors(&monitor_count);
-    printf("There %s %d monitor%s available:\n",
-            monitor_count == 1
-                    ? "is"
-                    : "are",
-            monitor_count,
-            monitor_count == 1
-                    ? ""
-                    : "s");
+    printf(
+        "There %s %d monitor%s available:\n",
+        monitor_count == 1 ? "is" : "are",
+        monitor_count,
+        monitor_count == 1 ? "" : "s");
     for (int i = 0; i < monitor_count; i++) {
         const char *name = glfwGetMonitorName(monitors[i]);
         printf("\t%d) ", i + 1);
-        if (i == 0) {
-            printf("(Primary) ");
-        }
+        if (i == 0) { printf("(Primary) "); }
         printf("%s ", name);
         const GLFWvidmode *mode = glfwGetVideoMode(monitors[i]);
         printf("[%dx%d]\n", mode->width, mode->height);
@@ -57,11 +52,12 @@ GLCreateWindow(GLFWmonitor *monitor) {
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-    return glfwCreateWindow(mode->width / 2,
-            mode->height / 2,
-            WINDOW_NAME,
-            NULL,
-            NULL);
+    return glfwCreateWindow(
+        mode->width / 2,
+        mode->height / 2,
+        WINDOW_NAME,
+        NULL,
+        NULL);
 }
 
 void
@@ -75,9 +71,9 @@ GLInitGL3W(void) {
 static GLuint
 compile_shader(const char *source, GLenum type) {
     GLuint shader;
-    GLint len;
+    GLint  len;
 
-    len = strlen(source);
+    len    = strlen(source);
     shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, &len);
     glCompileShader(shader);
@@ -104,9 +100,9 @@ GLBuildShader(void) {
                                   "void main() {\n"
                                   "    fcolor = texture(tex, ftexcoord);\n"
                                   "}\n";
-    vertex = compile_shader(vertex_source, GL_VERTEX_SHADER);
+    vertex   = compile_shader(vertex_source, GL_VERTEX_SHADER);
     fragment = compile_shader(fragment_source, GL_FRAGMENT_SHADER);
-    shader = glCreateProgram();
+    shader   = glCreateProgram();
     glAttachShader(shader, vertex);
     glAttachShader(shader, fragment);
     glLinkProgram(shader);
@@ -123,40 +119,49 @@ GLSetupRender(void) {
     glBindVertexArray(vao);
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    GLfloat vertexData[] = { // {x,y,z,u,v}
-            1.0f, 1.0f, 0.0f, 1.0f, 1.0f, // vertex 0
-            -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, // vertex 1
-            1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // vertex 2
-            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // vertex 3
+    GLfloat vertexData[] = {
+        // {x,y,z,u,v}
+        1.0f,  1.0f,  0.0f, 1.0f, 1.0f, // vertex 0
+        -1.0f, 1.0f,  0.0f, 0.0f, 1.0f, // vertex 1
+        1.0f,  -1.0f, 0.0f, 1.0f, 0.0f, // vertex 2
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // vertex 3
     };
-    glBufferData(GL_ARRAY_BUFFER,
-            sizeof(vertexData),
-            vertexData,
-            GL_STATIC_DRAW);
+    glBufferData(
+        GL_ARRAY_BUFFER,
+        sizeof(vertexData),
+        vertexData,
+        GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0,
-            3,
-            GL_FLOAT,
-            GL_FALSE,
-            5 * sizeof(GLfloat),
-            (char *)(0 + 0 * sizeof(GLfloat)));
+    glVertexAttribPointer(
+        0,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        5 * sizeof(GLfloat),
+        (char *)(0 + 0 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1,
-            2,
-            GL_FLOAT,
-            GL_FALSE,
-            5 * sizeof(GLfloat),
-            (char *)(0 + 3 * sizeof(GLfloat)));
+    glVertexAttribPointer(
+        1,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        5 * sizeof(GLfloat),
+        (char *)(0 + 3 * sizeof(GLfloat)));
     glGenBuffers(1, &ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
     GLuint indexData[] = {
-            0, 1, 2, // triangle 0
-            2, 1, 3 // triangle 1
+        0,
+        1,
+        2, // triangle 0
+        2,
+        1,
+        3 // triangle 1
     };
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-            sizeof(indexData),
-            indexData,
-            GL_STATIC_DRAW);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER,
+        sizeof(indexData),
+        indexData,
+        GL_STATIC_DRAW);
     glBindVertexArray(0);
     return vao;
 }
@@ -174,15 +179,16 @@ GLResizeTexture(GLuint *texture, int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_2D,
-            0,
-            GL_RGBA8,
-            width,
-            height,
-            0,
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
-            NULL);
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA8,
+        width,
+        height,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        NULL);
 }
 
 GLuint
@@ -198,14 +204,15 @@ GLCreateTexture(int width, int height) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_2D,
-            0,
-            GL_RGBA8,
-            width,
-            height,
-            0,
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
-            NULL);
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA8,
+        width,
+        height,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        NULL);
     return texture;
 }

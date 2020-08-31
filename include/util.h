@@ -6,4 +6,4 @@ safe_strdup(const char *s);
 
 #define strdup(s) safe_strdup(s)
 
-#endif//UTIL_H
+#endif // UTIL_H

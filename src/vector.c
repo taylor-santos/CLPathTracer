@@ -18,12 +18,12 @@ vec_length(Vector3 v) {
 }
 
 Vector3 *
-vec_normalize(Vector3 *v) {
-    vec_t length = vec_length(*v);
-    vec_x(*v) /= length;
-    vec_y(*v) /= length;
-    vec_z(*v) /= length;
-    return v;
+vec_normalize(Vector3 *pv) {
+    vec_t length = vec_length(*pv);
+    vec_x(*pv) /= length;
+    vec_y(*pv) /= length;
+    vec_z(*pv) /= length;
+    return pv;
 }
 
 Vector3
@@ -33,16 +33,18 @@ vec_normalized(Vector3 v) {
 
 Vector3
 vec_add(Vector3 a, Vector3 b) {
-    return Vector3(vec_x(a) + vec_x(b),
-            vec_y(a) + vec_y(b),
-            vec_z(a) + vec_z(b));
+    return Vector3(
+        vec_x(a) + vec_x(b),
+        vec_y(a) + vec_y(b),
+        vec_z(a) + vec_z(b));
 }
 
 Vector3
 vec_subtract(Vector3 a, Vector3 b) {
-    return Vector3(vec_x(a) - vec_x(b),
-            vec_y(a) - vec_y(b),
-            vec_z(a) - vec_z(b));
+    return Vector3(
+        vec_x(a) - vec_x(b),
+        vec_y(a) - vec_y(b),
+        vec_z(a) - vec_z(b));
 }
 
 Vector3
@@ -54,11 +56,11 @@ vec_cross(Vector3 a, Vector3 b) {
 }
 
 Vector3 *
-vec_negate(Vector3 *v) {
-    vec_x(*v) = -vec_x(*v);
-    vec_y(*v) = -vec_y(*v);
-    vec_z(*v) = -vec_z(*v);
-    return v;
+vec_negate(Vector3 *pv) {
+    vec_x(*pv) = -vec_x(*pv);
+    vec_y(*pv) = -vec_y(*pv);
+    vec_z(*pv) = -vec_z(*pv);
+    return pv;
 }
 
 Vector3
@@ -67,11 +69,11 @@ vec_negated(Vector3 v) {
 }
 
 Vector3 *
-vec_scale(Vector3 *v, vec_t factor) {
-    vec_x(*v) *= factor;
-    vec_y(*v) *= factor;
-    vec_z(*v) *= factor;
-    return v;
+vec_scale(Vector3 *pv, vec_t factor) {
+    vec_x(*pv) *= factor;
+    vec_y(*pv) *= factor;
+    vec_z(*pv) *= factor;
+    return pv;
 }
 
 Vector3
@@ -81,33 +83,24 @@ vec_scaled(Vector3 v, vec_t factor) {
 
 Vector3
 vec_divide(Vector3 a, Vector3 b) {
-    return Vector3(vec_x(a) / vec_x(b),
-            vec_y(a) / vec_y(b),
-            vec_z(a) / vec_z(b));
+    return Vector3(
+        vec_x(a) / vec_x(b),
+        vec_y(a) / vec_y(b),
+        vec_z(a) / vec_z(b));
 }
 
 Vector3
 vec_min(Vector3 a, Vector3 b) {
-    return Vector3(vec_x(a) < vec_x(b)
-            ? vec_x(a)
-            : vec_x(b),
-            vec_y(a) < vec_y(b)
-                    ? vec_y(a)
-                    : vec_y(b),
-            vec_z(a) < vec_z(b)
-                    ? vec_z(a)
-                    : vec_z(b));
+    return Vector3(
+        vec_x(a) < vec_x(b) ? vec_x(a) : vec_x(b),
+        vec_y(a) < vec_y(b) ? vec_y(a) : vec_y(b),
+        vec_z(a) < vec_z(b) ? vec_z(a) : vec_z(b));
 }
 
 Vector3
 vec_max(Vector3 a, Vector3 b) {
-    return Vector3(vec_x(a) > vec_x(b)
-            ? vec_x(a)
-            : vec_x(b),
-            vec_y(a) > vec_y(b)
-                    ? vec_y(a)
-                    : vec_y(b),
-            vec_z(a) > vec_z(b)
-                    ? vec_z(a)
-                    : vec_z(b));
+    return Vector3(
+        vec_x(a) > vec_x(b) ? vec_x(a) : vec_x(b),
+        vec_y(a) > vec_y(b) ? vec_y(a) : vec_y(b),
+        vec_z(a) > vec_z(b) ? vec_z(a) : vec_z(b));
 }

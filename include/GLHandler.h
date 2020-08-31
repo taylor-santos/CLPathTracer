@@ -21,4 +21,4 @@ GLResizeTexture(GLuint *texture, int width, int height);
 GLuint
 GLSetupRender(void);
 
-#endif//CLHANDLER
+#endif // CLHANDLER

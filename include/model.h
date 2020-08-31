@@ -6,4 +6,4 @@
 int
 LoadModel(const char *filename, kd *model);
 
-#endif//MODEL_H
+#endif // MODEL_H

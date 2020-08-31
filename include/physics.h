@@ -12,4 +12,4 @@ PhysStep(double stepSize);
 void
 PhysTerminate(void);
 
-#endif//PHYSICS_H
+#endif // PHYSICS_H

@@ -27,4 +27,4 @@ CLCreateImage(GLuint texture);
 void
 CLExecute(int width, int height);
 
-#endif//CL_SETUP_H
+#endif // CL_SETUP_H

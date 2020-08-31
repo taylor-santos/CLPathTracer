@@ -5,7 +5,7 @@
 char *
 safe_strdup(const char *s) {
     size_t len = strlen(s);
-    char *ret = malloc(len + 1);
+    char * ret = malloc(len + 1);
     if (ret == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);

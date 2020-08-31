@@ -29,4 +29,5 @@ int
 GLRender(void);
 void
 GLTerminate(void);
-#endif//GLSTATE_H
+
+#endif // GLSTATE_H

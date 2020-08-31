@@ -11,31 +11,45 @@ struct Matrix {
     Vector4 rows[4];
 };
 
-#define Matrix(\
-    m00, m01, m02, m03, \
-    m10, m11, m12, m13, \
-    m20, m21, m22, m23, \
-    m30, m31, m32, m33) \
-        (Matrix){ { \
-           {{ m00, m01, m02, m03 }}, \
-           {{ m10, m11, m12, m13 }}, \
-           {{ m20, m21, m22, m23 }}, \
-           {{ m30, m31, m32, m33 }} \
-        } }
+#define Matrix(                                             \
+    m00,                                                    \
+    m01,                                                    \
+    m02,                                                    \
+    m03,                                                    \
+    m10,                                                    \
+    m11,                                                    \
+    m12,                                                    \
+    m13,                                                    \
+    m20,                                                    \
+    m21,                                                    \
+    m22,                                                    \
+    m23,                                                    \
+    m30,                                                    \
+    m31,                                                    \
+    m32,                                                    \
+    m33)                                                    \
+    (Matrix) {                                              \
+        {                                                   \
+            {{m00, m01, m02, m03}}, {{m10, m11, m12, m13}}, \
+                {{m20, m21, m22, m23}}, {                   \
+                { m30, m31, m32, m33 }                      \
+            }                                               \
+        }                                                   \
+    }
 
 void
-mat_set(Matrix *, unsigned int n, unsigned int m, vec_t value);
+mat_set(Matrix *pMat, unsigned int n, unsigned int m, vec_t value);
 vec_t
-mat_get(Matrix, unsigned int n, unsigned int m);
+mat_get(Matrix mat, unsigned int n, unsigned int m);
 Matrix
-mat_add(Matrix, Matrix);
+mat_add(Matrix a, Matrix b);
 Matrix
-mat_multiply(Matrix, Matrix);
+mat_multiply(Matrix a, Matrix b);
 Matrix
-mat_scaled(Matrix, vec_t);
+mat_scaled(Matrix mat, vec_t t);
 Matrix *
-mat_scale(Matrix *, vec_t);
+mat_scale(Matrix *pMat, vec_t);
 Matrix
-mat_inverse(Matrix, int *err);
+mat_inverse(Matrix mat, int *err);
 
-#endif//MATRIX_H
+#endif // MATRIX_H

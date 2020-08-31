@@ -5,40 +5,37 @@
 #include <GL/gl3w.h>
 
 #ifdef __linux__
-#include <GL/glx.h>
+#    include <GL/glx.h>
 #endif
 
 #include "error.h"
 
 static cl_platform_id
 query_platform(const cl_platform_id *platforms, cl_uint num_platforms) {
-    printf("There %s %d platform%s available:\n",
-            num_platforms == 1
-                    ? "is"
-                    : "are",
-            num_platforms,
-            num_platforms == 1
-                    ? ""
-                    : "s");
+    printf(
+        "There %s %d platform%s available:\n",
+        num_platforms == 1 ? "is" : "are",
+        num_platforms,
+        num_platforms == 1 ? "" : "s");
     for (unsigned int i = 0; i < num_platforms; i++) {
         size_t name_len;
-        HANDLE_ERR(clGetPlatformInfo(platforms[i],
-                CL_PLATFORM_NAME,
-                0,
-                NULL,
-                &name_len));
+        HANDLE_ERR(clGetPlatformInfo(
+            platforms[i],
+            CL_PLATFORM_NAME,
+            0,
+            NULL,
+            &name_len));
         char *name = malloc(name_len);
-        HANDLE_ERR(clGetPlatformInfo(platforms[i],
-                CL_PLATFORM_NAME,
-                name_len,
-                name,
-                NULL));
+        HANDLE_ERR(clGetPlatformInfo(
+            platforms[i],
+            CL_PLATFORM_NAME,
+            name_len,
+            name,
+            NULL));
         printf("\t%d) %s\n", i + 1, name);
         free(name);
     }
-    if (num_platforms == 1) {
-        return platforms[0];
-    }
+    if (num_platforms == 1) { return platforms[0]; }
     long int index;
     do {
         printf("Select a platform (1-%d):\n", num_platforms);
@@ -66,33 +63,22 @@ CLGetPlatform(void) {
 
 static cl_device_id
 query_device(const cl_device_id *devices, cl_uint num_devices) {
-    printf("There %s %d device%s available:\n",
-            num_devices == 1
-                    ? "is"
-                    : "are",
-            num_devices,
-            num_devices == 1
-                    ? ""
-                    : "s");
+    printf(
+        "There %s %d device%s available:\n",
+        num_devices == 1 ? "is" : "are",
+        num_devices,
+        num_devices == 1 ? "" : "s");
     for (unsigned int i = 0; i < num_devices; i++) {
         size_t name_len;
-        HANDLE_ERR(clGetDeviceInfo(devices[i],
-                CL_DEVICE_NAME,
-                0,
-                NULL,
-                &name_len));
+        HANDLE_ERR(
+            clGetDeviceInfo(devices[i], CL_DEVICE_NAME, 0, NULL, &name_len));
         char *name = malloc(name_len);
-        HANDLE_ERR(clGetDeviceInfo(devices[i],
-                CL_DEVICE_NAME,
-                name_len,
-                name,
-                NULL));
+        HANDLE_ERR(
+            clGetDeviceInfo(devices[i], CL_DEVICE_NAME, name_len, name, NULL));
         printf("\t%d) %s\n", i + 1, name);
         free(name);
     }
-    if (num_devices == 1) {
-        return devices[0];
-    }
+    if (num_devices == 1) { return devices[0]; }
     long int index;
     do {
         printf("Select a device (1-%d):\n", num_devices);
@@ -110,17 +96,19 @@ query_device(const cl_device_id *devices, cl_uint num_devices) {
 cl_device_id
 CLGetDevice(cl_platform_id platform) {
     cl_uint num_devices;
-    HANDLE_ERR(clGetDeviceIDs(platform,
-            CL_DEVICE_TYPE_DEFAULT,
-            0,
-            NULL,
-            &num_devices));
+    HANDLE_ERR(clGetDeviceIDs(
+        platform,
+        CL_DEVICE_TYPE_DEFAULT,
+        0,
+        NULL,
+        &num_devices));
     cl_device_id *devices = malloc(sizeof(*devices) * num_devices);
-    HANDLE_ERR(clGetDeviceIDs(platform,
-            CL_DEVICE_TYPE_DEFAULT,
-            num_devices,
-            devices,
-            NULL));
+    HANDLE_ERR(clGetDeviceIDs(
+        platform,
+        CL_DEVICE_TYPE_DEFAULT,
+        num_devices,
+        devices,
+        NULL));
     cl_device_id device = query_device(devices, num_devices);
     free(devices);
     return device;
@@ -176,38 +164,35 @@ read_file(char *buffer, size_t file_len, FILE *file) {
 cl_context
 CLCreateContext(cl_platform_id platform, cl_device_id device) {
     cl_context context;
-    cl_int err;
+    cl_int     err;
 
-    #ifdef WIN32
+#ifdef WIN32
     cl_context_properties props[] = {
-            CL_CONTEXT_PLATFORM,
-            (cl_context_properties)platform,
-            CL_GL_CONTEXT_KHR,
-            (cl_context_properties)wglGetCurrentContext(),
-            CL_WGL_HDC_KHR,
-            (cl_context_properties)wglGetCurrentDC(),
-            0
-    };
-    #elif __APPLE__
-    CGLContextObj glContext = CGLGetCurrentContext();
+        CL_CONTEXT_PLATFORM,
+        (cl_context_properties)platform,
+        CL_GL_CONTEXT_KHR,
+        (cl_context_properties)wglGetCurrentContext(),
+        CL_WGL_HDC_KHR,
+        (cl_context_properties)wglGetCurrentDC(),
+        0};
+#elif __APPLE__
+    CGLContextObj    glContext  = CGLGetCurrentContext();
     CGLShareGroupObj shareGroup = CGLGetShareGroup(glContext);
 
     cl_context_properties props[] = {
-            CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
-            (cl_context_properties)shareGroup,
-            0
-    };
-    #else
+        CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE,
+        (cl_context_properties)shareGroup,
+        0};
+#else
     cl_context_properties props[] = {
-            CL_CONTEXT_PLATFORM,
-            (cl_context_properties)platform,
-            CL_GL_CONTEXT_KHR,
-            (cl_context_properties)glXGetCurrentContext(),
-            CL_GLX_DISPLAY_KHR,
-            (cl_context_properties)glXGetCurrentDisplay(),
-            0
-    };
-    #endif
+        CL_CONTEXT_PLATFORM,
+        (cl_context_properties)platform,
+        CL_GL_CONTEXT_KHR,
+        (cl_context_properties)glXGetCurrentContext(),
+        CL_GLX_DISPLAY_KHR,
+        (cl_context_properties)glXGetCurrentDisplay(),
+        0};
+#endif
 
     context = clCreateContext(props, 1, &device, NULL, NULL, &err);
     HANDLE_ERR(err);
@@ -217,41 +202,44 @@ CLCreateContext(cl_platform_id platform, cl_device_id device) {
 cl_program
 CLBuildProgram(const char *filename, cl_context context, cl_device_id device) {
     cl_program program;
-    FILE *file;
-    size_t length;
-    char *src;
-    int err;
-    file = open_file(filename);
+    FILE *     file;
+    size_t     length;
+    char *     src;
+    int        err;
+    file   = open_file(filename);
     length = file_length(file);
-    src = malloc(length + 1);
+    src    = malloc(length + 1);
     if (src == NULL) {
         perror("malloc");
         exit(EXIT_FAILURE);
     }
     read_file(src, length, file);
     close_file(file);
-    program = clCreateProgramWithSource(context,
-            1,
-            (const char **)&src,
-            &length,
-            &err);
+    program = clCreateProgramWithSource(
+        context,
+        1,
+        (const char **)&src,
+        &length,
+        &err);
     HANDLE_ERR(err);
     free(src);
     err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
     if (err < 0) {
-        HANDLE_ERR(clGetProgramBuildInfo(program,
-                device,
-                CL_PROGRAM_BUILD_LOG,
-                0,
-                NULL,
-                &length));
+        HANDLE_ERR(clGetProgramBuildInfo(
+            program,
+            device,
+            CL_PROGRAM_BUILD_LOG,
+            0,
+            NULL,
+            &length));
         char *log = malloc(length);
-        HANDLE_ERR(clGetProgramBuildInfo(program,
-                device,
-                CL_PROGRAM_BUILD_LOG,
-                length,
-                log,
-                NULL));
+        HANDLE_ERR(clGetProgramBuildInfo(
+            program,
+            device,
+            CL_PROGRAM_BUILD_LOG,
+            length,
+            log,
+            NULL));
         printf("%s\n", log);
         free(log);
         exit(EXIT_FAILURE);
@@ -262,7 +250,7 @@ CLBuildProgram(const char *filename, cl_context context, cl_device_id device) {
 cl_command_queue
 CLCreateQueue(cl_context context, cl_device_id device) {
     cl_command_queue queue;
-    cl_int err;
+    cl_int           err;
 
     queue = clCreateCommandQueue(context, device, 0, &err);
     HANDLE_ERR(err);
@@ -272,7 +260,7 @@ CLCreateQueue(cl_context context, cl_device_id device) {
 cl_kernel
 CLCreateKernel(const char *kernel_name, cl_program program) {
     cl_kernel kernel;
-    cl_int err;
+    cl_int    err;
 
     kernel = clCreateKernel(program, kernel_name, &err);
     HANDLE_ERR(err);
@@ -290,19 +278,20 @@ CLCreateBuffer(cl_context context, size_t size) {
 }
 
 void
-CLEnqueueKernel(cl_uint dim,
-        size_t *global_size,
-        size_t *local_size,
-        cl_command_queue queue,
-        cl_kernel kernel) {
-
-    HANDLE_ERR(clEnqueueNDRangeKernel(queue,
-            kernel,
-            dim,
-            NULL,
-            global_size,
-            local_size,
-            0,
-            NULL,
-            NULL));
+CLEnqueueKernel(
+    cl_uint          dim,
+    size_t *         global_size,
+    size_t *         local_size,
+    cl_command_queue queue,
+    cl_kernel        kernel) {
+    HANDLE_ERR(clEnqueueNDRangeKernel(
+        queue,
+        kernel,
+        dim,
+        NULL,
+        global_size,
+        local_size,
+        0,
+        NULL,
+        NULL));
 }

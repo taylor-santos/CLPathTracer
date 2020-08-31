@@ -10,21 +10,17 @@
 
 static struct {
     GLFWmonitor *monitor;
-    GLFWwindow *window;
-    GLuint shaderProgram, vao, texture;
-    GLint texLoc;
-    int width, height;
-    GLFWkeyfun keyHandlers[GLFW_KEY_LAST + 1];
+    GLFWwindow * window;
+    GLuint       shaderProgram, vao, texture;
+    GLint        texLoc;
+    int          width, height;
+    GLFWkeyfun   keyHandlers[GLFW_KEY_LAST + 1];
 } State;
 
 static void
 resize_callback(GLFWwindow *wind, int new_width, int new_height) {
-    State.width = new_width >= 1
-            ? new_width
-            : 1;
-    State.height = new_height >= 1
-            ? new_height
-            : 1;
+    State.width  = new_width >= 1 ? new_width : 1;
+    State.height = new_height >= 1 ? new_height : 1;
     GLResizeTexture(&State.texture, State.width, State.height);
     CLDeleteImage();
     CLCreateImage(State.texture);
@@ -42,9 +38,7 @@ GLGetWindowSize(int *x, int *y) {
 
 static void
 key_callback(GLFWwindow *wind, int key, int scancode, int action, int mods) {
-    if (State.keyHandlers[key] == NULL) {
-        return;
-    }
+    if (State.keyHandlers[key] == NULL) { return; }
     State.keyHandlers[key](wind, key, scancode, action, mods);
 }
 
@@ -120,7 +114,7 @@ void
 GLInit(const char *kernel_filename, const char *kernel_name) {
     GLInitGLFW();
     State.monitor = GLGetMonitor();
-    State.window = GLCreateWindow(State.monitor);
+    State.window  = GLCreateWindow(State.monitor);
     glfwMakeContextCurrent(State.window);
     glfwSetWindowSizeCallback(State.window, resize_callback);
     set_key_callback(State.window);
@@ -133,9 +127,9 @@ GLInit(const char *kernel_filename, const char *kernel_name) {
     }
 
     State.shaderProgram = GLBuildShader();
-    State.vao = GLSetupRender();
-    State.texLoc = glGetUniformLocation(State.shaderProgram, "tex");
-    State.texture = GLCreateTexture(State.width, State.height);
+    State.vao           = GLSetupRender();
+    State.texLoc        = glGetUniformLocation(State.shaderProgram, "tex");
+    State.texture       = GLCreateTexture(State.width, State.height);
     CLInit(kernel_filename, kernel_name);
     CLCreateImage(State.texture);
 }

@@ -9,4 +9,4 @@ err_string(cl_int error);
 void
 handle_err(cl_int err, const char *file, int line);
 
-#endif//ERROR_H
+#endif // ERROR_H

@@ -9,9 +9,7 @@ typedef struct Object Object;
 #pragma pack(push, 1)
 struct Object {
     Vector3 position;
-    enum {
-        OBJ_SPHERE
-    } type;
+    enum { OBJ_SPHERE } type;
     union {
         struct {
             vec_t radius;
@@ -20,6 +18,6 @@ struct Object {
 };
 #pragma pack(pop)
 
-#define Object(position, type, object) ((Object){ position, type, object })
+#define Object(position, type, object) ((Object){position, type, object})
 
-#endif//OBJECT_H
+#endif // OBJECT_H
