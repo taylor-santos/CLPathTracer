@@ -99,7 +99,7 @@ tinyOBJ_parse(const char *filename, const char *path, kd *tree) {
     if (ret != TINYOBJ_SUCCESS) { return 1; }
     Vector3 *verts = new_list(sizeof(*verts) * attrib.num_vertices);
     for (unsigned int i = 0; i < attrib.num_vertices; i++) {
-        vector_append(
+        list_append(
             verts,
             Vector3(
                 attrib.vertices[3 * i + 0],
@@ -108,7 +108,7 @@ tinyOBJ_parse(const char *filename, const char *path, kd *tree) {
     }
     cl_int3 *tris = new_list(sizeof(*tris) * attrib.num_faces);
     for (unsigned int i = 0; i < attrib.num_faces; i++) {
-        vector_append(
+        list_append(
             tris,
             ((cl_int3){
                 {attrib.faces[i].v_idx,
@@ -117,7 +117,7 @@ tinyOBJ_parse(const char *filename, const char *path, kd *tree) {
     }
     Vector3 *norms = new_list(sizeof(*norms) * attrib.num_normals);
     for (unsigned int i = 0; i < attrib.num_normals; i++) {
-        vector_append(
+        list_append(
             norms,
             Vector3(
                 attrib.normals[3 * i + 0],

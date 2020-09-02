@@ -9,13 +9,13 @@ extern size_t LIST_INDEX;
  * vector must be defined as a pointer to 'item's type, to allow for proper
  * type checking.
  */
-#define vector_append(vec, item)                                     \
-    (LIST_INDEX        = list_grow((void **)&(vec), sizeof((item))), \
-     (vec)[LIST_INDEX] = (item))
-#define vector_length(vec)    (list_size(vec) / sizeof(*vec))
-#define vector_concat(v1, v2) vec_concat((void **)&v1, v2)
+#define list_append(list, item)                                        \
+    (LIST_INDEX         = list_grow((void **)&(list), sizeof((item))), \
+     (list)[LIST_INDEX] = (item))
+#define list_length(list)   (list_size(list) / sizeof(*list))
+#define list_concat(v1, v2) internal_list_concat((void **)&v1, v2)
 void
-list_concat(void **pList1, const void *list2);
+internal_list_concat(void **pList1, const void *list2);
 void *
 new_list(size_t capacity);
 void *

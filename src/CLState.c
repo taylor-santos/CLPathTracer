@@ -3,6 +3,7 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 
+#include "CLState.h"
 #include "error.h"
 #include "camera.h"
 #include "CLHandler.h"
@@ -11,12 +12,11 @@
 #include "kd_tree.h"
 
 typedef struct KernelArg {
-    size_t       size;
-    void *       arg_ptr;
-    unsigned int is_ptr : 1;
+    size_t size;
+    void * arg_ptr;
 } KernelArg;
 
-#define KernelArg(size, arg_ptr, is_ptr) ((KernelArg){size, arg_ptr, is_ptr})
+#define KernelArg(size, arg_ptr) ((KernelArg){size, arg_ptr})
 
 static struct {
     cl_platform_id   platform;
@@ -37,6 +37,7 @@ static struct {
     cl_mem           kdtree;
     size_t           treesize;
     KernelArg *      vec_args;
+    cl_mem *         arg_buffers;
 } State;
 
 void
@@ -82,7 +83,7 @@ CLSetCameraMatrix(Matrix matrix) {
 
 static void
 update_args(cl_kernel kernel) {
-    size_t count = vector_length(State.vec_args);
+    size_t count = list_length(State.vec_args);
     for (size_t i = 0; i < count; i++) {
         HANDLE_ERR(clSetKernelArg(
             kernel,
@@ -123,7 +124,7 @@ CLSetObjects(Object *vec_objects, size_t size) {
 
 void
 CLSetMeshes(kd *models) {
-    size_t model_count = vector_length(models);
+    size_t model_count = list_length(models);
     if (model_count == 0) { return; }
     State.kd = models[0];
     {
@@ -227,7 +228,7 @@ CLTerminate(void) {
 }
 
 void
-CLInit(const char *kernel_filename, const char *kernel_name) {
+CLInit(const char *kernel_filename, const char *kernel_name, CLArg *args) {
     State.platform = CLGetPlatform();
     State.device   = CLGetDevice(State.platform);
     State.context  = CLCreateContext(State.platform, State.device);
@@ -237,17 +238,44 @@ CLInit(const char *kernel_filename, const char *kernel_name) {
     State.kernel   = CLCreateKernel(kernel_name, State.program);
     State.matrix   = CLCreateBuffer(State.context, sizeof(Matrix));
     State.vec_args = new_list(9 * sizeof(*State.vec_args));
-    vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.image, 0));
-    vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.matrix, 0));
-    vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.objects, 0));
-    vector_append(
-        State.vec_args,
-        KernelArg(sizeof(cl_int), &State.objcount, 1));
-    vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.verts, 0));
-    vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.norms, 0));
-    vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.tris, 0));
-    vector_append(
-        State.vec_args,
-        KernelArg(sizeof(cl_mem), &State.triIndices, 0));
-    vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.kdtree, 0));
+    list_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.image));
+    list_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.matrix));
+    if (args) {
+        size_t num_args   = list_length(args);
+        State.arg_buffers = new_list(sizeof(cl_mem) * num_args);
+        for (size_t i = 0; i < num_args; i++) {
+            CLArg  arg           = args[i];
+            size_t sz            = list_size(arg.data);
+            State.arg_buffers[i] = CLCreateBuffer(State.context, sz);
+            HANDLE_ERR(clEnqueueWriteBuffer(
+                State.queue,
+                State.arg_buffers[i],
+                CL_TRUE,
+                0,
+                sz,
+                arg.data,
+                0,
+                NULL,
+                NULL));
+            list_append(
+                State.vec_args,
+                KernelArg(sizeof(cl_mem), State.arg_buffers + i));
+        }
+    }
+    // vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.objects,
+    // 0));
+    // vector_append(
+    //     State.vec_args,
+    //     KernelArg(sizeof(cl_int), &State.objcount, 1));
+    // vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.verts,
+    // 0));
+    // vector_append(State.vec_args, KernelArg(sizeof(cl_mem),
+    // &State.norms,  0));
+    // vector_append(State.vec_args,
+    // KernelArg(sizeof(cl_mem), &State.tris, 0));
+    // vector_append(
+    //     State.vec_args,
+    //     KernelArg(sizeof(cl_mem), &State.triIndices, 0));
+    // vector_append(State.vec_args, KernelArg(sizeof(cl_mem), &State.kdtree,
+    // 0));
 }

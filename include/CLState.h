@@ -10,8 +10,12 @@
 #include "object.h"
 #include "kd_tree.h"
 
+typedef struct CLArg {
+    void *data;
+} CLArg;
+
 void
-CLInit(const char *kernel_filename, const char *kernel_name);
+CLInit(const char *kernel_filename, const char *kernel_name, CLArg *args);
 void
 CLTerminate(void);
 void

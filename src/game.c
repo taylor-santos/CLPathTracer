@@ -32,7 +32,7 @@ static struct {
         double x, y;
     } mousePos;
     struct {
-        int forward, left, back, right, sprint, walk;
+        int forward, left, back, right, up, down, sprint, walk;
     } moveKey;
     Camera  camera;
     Vector3 camVel;
@@ -133,6 +133,24 @@ left_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
 }
 
 void
+up_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        State.moveKey.up = 1;
+    } else if (action == GLFW_RELEASE) {
+        State.moveKey.up = 0;
+    }
+}
+
+void
+down_key(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (action == GLFW_PRESS) {
+        State.moveKey.down = 1;
+    } else if (action == GLFW_RELEASE) {
+        State.moveKey.down = 0;
+    }
+}
+
+void
 sprint(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
         State.moveKey.sprint = 1;
@@ -222,7 +240,8 @@ StartGameLoop(void) {
         vec_normalize(&forward);
         vec_scale(&right, State.moveKey.right - State.moveKey.left);
         vec_scale(&forward, State.moveKey.forward - State.moveKey.back);
-        State.camVel = vec_scaled(vec_add(right, forward), speed);
+        vec_scale(&up, State.moveKey.up - State.moveKey.down);
+        State.camVel = vec_scaled(vec_add(vec_add(right, forward), up), speed);
         update_camera();
         update_objects();
 
@@ -231,25 +250,16 @@ StartGameLoop(void) {
 }
 
 void
-GameInit(
-    const char *       kernel_filename,
-    const char *       kernel_name,
-    const char *const *models) {
-    size_t model_count = vector_length(models);
-    vec_models         = new_list(model_count * sizeof(*vec_models));
-    for (size_t i = 0; i < model_count; i++) {
-        kd tree;
-        if (LoadModel(models[i], &tree)) { continue; }
-        vector_append(vec_models, tree);
-    }
-    GLInit(kernel_filename, kernel_name);
-    GLSetMeshes(vec_models);
+GameInit(const char *kernel_filename, const char *kernel_name, CLArg *args) {
+    GLInit(kernel_filename, kernel_name, args);
     GLRegisterKey(GLFW_KEY_ESCAPE, close_window);
     GLRegisterKey(GLFW_KEY_F, toggle_fullscreen);
     GLRegisterKey(GLFW_KEY_W, forward_key);
     GLRegisterKey(GLFW_KEY_D, right_key);
     GLRegisterKey(GLFW_KEY_S, back_key);
     GLRegisterKey(GLFW_KEY_A, left_key);
+    GLRegisterKey(GLFW_KEY_E, up_key);
+    GLRegisterKey(GLFW_KEY_Q, down_key);
     GLRegisterKey(GLFW_KEY_LEFT_SHIFT, sprint);
     GLRegisterKey(GLFW_KEY_LEFT_CONTROL, walk);
     GLRegisterScroll(change_fov);

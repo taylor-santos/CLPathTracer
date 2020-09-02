@@ -25,7 +25,7 @@ static size_t   ptr_count = 0;
 void
 AddPhysObject(Vector3 *position, Vector3 *velocity) {
     if (objects == NULL) { objects = new_list(sizeof(*objects)); }
-    vector_append(objects, ((PhysObject){position, velocity}));
+    list_append(objects, ((PhysObject){position, velocity}));
     obj_count++;
 }
 
@@ -34,7 +34,7 @@ AddPhysPtr(void *pos_base, void *pos_ptr, void *vel_base, void *vel_ptr) {
     if (ptrs == NULL) { ptrs = new_list(sizeof(*ptrs)); }
     ptrdiff_t pos_diff = (char *)pos_ptr - *(char **)pos_base;
     ptrdiff_t vel_diff = (char *)vel_ptr - *(char **)vel_base;
-    vector_append(ptrs, ((PhysPtr){pos_base, pos_diff, vel_base, vel_diff}));
+    list_append(ptrs, ((PhysPtr){pos_base, pos_diff, vel_base, vel_diff}));
     ptr_count++;
 }
 

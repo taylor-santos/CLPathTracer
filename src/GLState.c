@@ -7,6 +7,7 @@
 #include "CLState.h"
 #include "GLHandler.h"
 #include "object.h"
+#include "list.h"
 
 static struct {
     GLFWmonitor *monitor;
@@ -111,7 +112,7 @@ GLTerminate(void) {
 }
 
 void
-GLInit(const char *kernel_filename, const char *kernel_name) {
+GLInit(const char *kernel_filename, const char *kernel_name, CLArg *args) {
     GLInitGLFW();
     State.monitor = GLGetMonitor();
     State.window  = GLCreateWindow(State.monitor);
@@ -130,6 +131,6 @@ GLInit(const char *kernel_filename, const char *kernel_name) {
     State.vao           = GLSetupRender();
     State.texLoc        = glGetUniformLocation(State.shaderProgram, "tex");
     State.texture       = GLCreateTexture(State.width, State.height);
-    CLInit(kernel_filename, kernel_name);
+    CLInit(kernel_filename, kernel_name, args);
     CLCreateImage(State.texture);
 }

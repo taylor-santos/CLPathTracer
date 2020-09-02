@@ -76,7 +76,7 @@ list_realloc(data **lptr, size_t size) {
 }
 
 void
-list_concat(void **pList1, const void *list2) {
+internal_list_concat(void **pList1, const void *list2) {
     data *      l1 = get_list(*pList1);
     const data *l2 = get_const_list(list2);
     size_t      s1 = l1->length, s2 = l2->length;

@@ -4,9 +4,10 @@
 #include "matrix.h"
 #include "object.h"
 #include "kd_tree.h"
+#include "CLState.h"
 
 void
-GLInit(const char *kernel_filename, const char *kernel_name);
+GLInit(const char *kernel_filename, const char *kernel_name, CLArg *args);
 void
 GLGetWindowPos(int *x, int *y);
 void
