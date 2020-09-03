@@ -1,5 +1,5 @@
 #define vec_t       float
-#define VOXEL_DEPTH 5
+#define VOXEL_DEPTH 3u
 
 #define CONCAT2(a, b) a##b
 #define CONCAT(a, b)  CONCAT2(a, b)
@@ -40,7 +40,7 @@ typedef struct __attribute__((__packed__)) Voxel {
     enum { INTERNAL, LEAF } type;
     union {
         struct {
-            ushort children[8];
+            uint children[8];
         } internal;
         struct {
             color4 color;
@@ -151,7 +151,7 @@ hit_AABB(
 }
 
 int4
-box_subdivs(vec3 spt, vec3 invdir, vec_t dt, bool debug) {
+box_subdivs(vec3 spt, vec3 invdir, vec_t dt) {
     int4 res     = -1;
     vec3 dists   = ((vec3)0.5 - spt) * invdir;
     int3 valids  = isgreaterequal(dists, 0) * isless(dists, (vec3)dt);
@@ -187,10 +187,164 @@ box_subdivs(vec3 spt, vec3 invdir, vec_t dt, bool debug) {
 }
 
 bool
+voxel_march2(
+    Ray    r,
+    vec4   bounds,
+    global Voxel *voxels,
+    color3 *      col,
+    bool          debug) {
+    print("------START------\n");
+    struct {
+        union {
+            int  arr[4];
+            int4 vec;
+        } subd;
+        int  index;
+        int  voxel;
+        vec4 bounds;
+    } state[VOXEL_DEPTH + 1];
+    vec_t tmin, tmax;
+    SIDE  near, far;
+    int   curr = 0;
+    vec3  pt, spt;
+
+    if (!hit_AABB(
+            (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
+            r,
+            &tmin,
+            &tmax,
+            &near,
+            &far)) {
+        return false;
+    }
+    pt                = r.orig + tmin * r.dir;
+    spt               = (pt - bounds.xyz) / bounds.w;
+    int4 subd         = box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w);
+    state[0].subd.vec = subd;
+    state[0].index    = 0;
+    state[0].voxel    = 0;
+    state[0].bounds   = bounds;
+
+    int d = 0;
+    while (curr >= 0) {
+        print("Entering %d\n", curr);
+        if (d > 10) {
+            *col = new_color(1, 0, 0);
+            return true;
+        }
+        d++;
+        int index = state[curr].index; // subd element index (x, y, z, w)
+        int vi    = state[curr].voxel; // voxels array index
+        int ci    = state[curr].subd.arr[index]; // child index (0-7)
+        int nextv;
+        print(" Node %d is", vi);
+        if (voxels[vi].type == INTERNAL) {
+            print(" INTERNAL\n");
+            print(
+                " Node's children are [%d, %d, %d, %d, %d, %d, %d, %d]\n",
+                voxels[vi].internal.children[0],
+                voxels[vi].internal.children[1],
+                voxels[vi].internal.children[2],
+                voxels[vi].internal.children[3],
+                voxels[vi].internal.children[4],
+                voxels[vi].internal.children[5],
+                voxels[vi].internal.children[6],
+                voxels[vi].internal.children[7]);
+        } else {
+            print(" LEAF\n");
+        }
+        print(" Subd is ");
+        print("%v4i\n", state[curr].subd.vec);
+        print(
+            " %d %d %d %d\n",
+            state[curr].subd.arr[0],
+            state[curr].subd.arr[1],
+            state[curr].subd.arr[2],
+            state[curr].subd.arr[3]);
+        print(" Index is %d (%d)\n", index, state[curr].subd.arr[index]);
+        if (ci == 0) {
+            print(" CURRENT CHILD IS EMPTY, BACKING UP...\n");
+            curr--;
+            state[curr].index++;
+            return false;
+            continue;
+        }
+        nextv = voxels[vi].internal.children[ci];
+        print(" Next child is %d\n", nextv);
+        if (voxels[nextv].type == LEAF) {
+            *col = voxels[nextv].leaf.color.xyz;
+            return true;
+        }
+        bounds = state[curr].bounds;
+        bounds.w /= 2;
+        bounds.xyz += corner[ci].xyz * bounds.w;
+        if (!hit_AABB(
+                (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
+                r,
+                &tmin,
+                &tmax,
+                &near,
+                &far)) {
+            return false;
+        }
+        pt  = r.orig + tmin * r.dir;
+        spt = (pt - bounds.xyz) / bounds.w;
+        state[curr + 1].subd.vec =
+            box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w);
+        state[curr + 1].index  = 0;
+        state[curr + 1].voxel  = nextv;
+        state[curr + 1].bounds = bounds;
+        curr++;
+    }
+    return false;
+    /*
+    int v = 0;
+    do {
+        if (!hit_AABB(
+                (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
+                r,
+                &tmin,
+                &tmax,
+                &near,
+                &far)) {
+            *col = new_color(1, 0, 0);
+            return true;
+        }
+        pt        = r.orig + tmin * r.dir;
+        spt       = (pt - bounds.xyz) / bounds.w;
+        int4 subd = box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w);
+        state[curr].subd.vec = subd;
+        state[curr].index    = 0;
+        state[curr].voxel    = v;
+        state[curr].bounds   = bounds;
+        bounds.w /= 2;
+        bounds.xyz += corner[subd.x].xyz * bounds.w;
+        v = voxels[v].internal.children[subd.x];
+        if (v == 0) { break; }
+        curr++;
+    } while (voxels[v].type == INTERNAL);
+    curr--;
+    while (curr >= 0) {
+        Voxel v = voxels[state[curr].voxel];
+        if (voxels[v.internal.children[state[curr].subd.arr[state[curr].index]]]
+                .type == LEAF) {
+            *col =
+                voxels[v.internal
+                           .children[state[curr].subd.arr[state[curr].index]]]
+                    .leaf.color.xyz;
+            return true;
+        }
+        break;
+    }
+     */
+    return false;
+}
+
+bool
 voxel_march(
-    Ray            r,
-    vec4           bounds,
-    unsigned short index,
+    Ray          r,
+    vec4         bounds,
+    unsigned int index,
     global Voxel *voxels,
     int           depth,
     color3 *      col,
@@ -214,7 +368,7 @@ voxel_march(
         }
         vec3 pt  = r.orig + tmin * r.dir;
         vec3 spt = (pt - bounds.xyz) / bounds.w;
-        subd.vec = box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w, debug);
+        subd.vec = box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w);
         for (int i = 0; i < 4; i++) {
             if (subd.arr[i] == -1) { break; }
             int next_index = voxels[index].internal.children[subd.arr[i]];
@@ -242,7 +396,8 @@ color3
 trace_ray(Ray r, global Voxel *voxels, bool debug) {
     vec4   bounds = {0, 0, 0, 1 << VOXEL_DEPTH};
     color3 col    = (r.dir + 1) / 2;
-    voxel_march(r, bounds, 0, voxels, VOXEL_DEPTH, &col, debug);
+    // voxel_march(r, bounds, 0, voxels, VOXEL_DEPTH, &col, debug);
+    voxel_march2(r, bounds, voxels, &col, debug);
     if (debug) return 1;
     return col;
 }

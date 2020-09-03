@@ -9,6 +9,7 @@
 #include "list.h"
 #include "kd_tree.h"
 #include "model.h"
+#include "voxel.h"
 
 #ifndef M_PI
 #    define M_PI 3.14159265358979323846
@@ -227,7 +228,7 @@ update_objects(void) {
 
 void
 StartGameLoop(void) {
-    double  speed;
+    vec_t   speed;
     Vector3 up, right, forward;
     while (GLRender()) {
         speed = GameProperties.movementSpeed;
@@ -268,8 +269,12 @@ GameInit(const char *kernel_filename, const char *kernel_name, CLArg *args) {
     GLGetWindowSize(&prevScreenSize[0], &prevScreenSize[1]);
     GLGetMousePos(&State.mousePos.x, &State.mousePos.y);
     State.camVel = Vector3_zero;
-    State.camera =
-        (Camera){0.1, 1, M_PI / 3, Vector3(0, 0.1, -0.2), Vector3_forward};
+    State.camera = (Camera){
+        0.1,
+        1,
+        M_PI / 3,
+        Vector3((1u << VOXEL_DEPTH) / 2.01, (1u << VOXEL_DEPTH) / 2.01, -40),
+        Vector3_forward};
     AddPhysObject(&State.camera.Position, &State.camVel);
     vec_objects = new_list(0);
 }
