@@ -3,7 +3,7 @@
 
 #include <CL/cl_gl.h>
 
-#define vec_t float
+#define vec_t double
 
 #define CONCAT2(a, b, c) a##b##c
 #define CONCAT(a, b, c)  CONCAT2(a, b, c)

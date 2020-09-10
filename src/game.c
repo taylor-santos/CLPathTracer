@@ -1,6 +1,8 @@
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "GLState.h"
 #include "camera.h"
@@ -230,6 +232,12 @@ void
 StartGameLoop(void) {
     vec_t   speed;
     Vector3 up, right, forward;
+    FILE *  save;
+
+    if ((save = fopen("save", "rb")) != NULL) {
+        fread(&State, sizeof(State), 1, save);
+        fclose(save);
+    }
     while (GLRender()) {
         speed = GameProperties.movementSpeed;
         if (State.moveKey.sprint) { speed *= GameProperties.sprintModifier; }
@@ -248,6 +256,12 @@ StartGameLoop(void) {
 
         PhysStep(update_time());
     }
+    if ((save = fopen("save", "wb")) == NULL) {
+        perror("save");
+        exit(EXIT_FAILURE);
+    }
+    fwrite(&State, sizeof(State), 1, save);
+    fclose(save);
 }
 
 void
@@ -270,7 +284,7 @@ GameInit(const char *kernel_filename, const char *kernel_name, CLArg *args) {
     GLGetMousePos(&State.mousePos.x, &State.mousePos.y);
     State.camVel = Vector3_zero;
     State.camera = (Camera){
-        0.1,
+        0.1f,
         1,
         M_PI / 3,
         Vector3((1u << VOXEL_DEPTH) / 2.01, (1u << VOXEL_DEPTH) / 2.01, -40),
