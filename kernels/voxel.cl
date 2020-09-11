@@ -1,12 +1,15 @@
-#define vec_t     double
-#define ivec_t    long
-#define MAX_VEC_T DBL_MAX
-#define PVEC      "l"
 
-//#define vec_t     float
-//#define ivec_t    int
-//#define MAX_VEC_T FLT_MAX
-//#define PVEC      ""
+#ifdef USE_DOUBLES
+#    define vec_t     double
+#    define ivec_t    long
+#    define MAX_VEC_T DBL_MAX
+#    define PVEC      "l"
+#else
+#    define vec_t     float
+#    define ivec_t    int
+#    define MAX_VEC_T FLT_MAX
+#    define PVEC      ""
+#endif
 
 #define VOXEL_DEPTH 10u
 
@@ -125,45 +128,45 @@ new_Ray(vec3 orig, vec3 dir) {
 }
 
 bool
-hit_AABB(
-    vec3   bounds[],
-    Ray    r,
-    vec_t *p_tmin,
-    vec_t *p_tmax,
-    SIDE * p_near,
-    SIDE * p_far) {
+hit_AABB(vec3 bounds[], Ray r, vec_t *p_tmin, vec_t *p_tmax) {
     vec_t tymin, tymax, tzmin, tzmax;
 
-    *p_near = r.sign.x;
-    *p_far  = 1 - r.sign.x;
     *p_tmin = (bounds[r.sign.x].x - r.orig.x) * r.invdir.x;
     *p_tmax = (bounds[1 - r.sign.x].x - r.orig.x) * r.invdir.x;
     tymin   = (bounds[r.sign.y].y - r.orig.y) * r.invdir.y;
     tymax   = (bounds[1 - r.sign.y].y - r.orig.y) * r.invdir.y;
 
     if ((*p_tmin > tymax) || (tymin > *p_tmax)) { return false; }
-    if (tymin > *p_tmin) {
-        *p_tmin = tymin;
-        *p_near = 2 + r.sign.y;
-    }
-    if (tymax < *p_tmax) {
-        *p_tmax = tymax;
-        *p_far  = 3 - r.sign.y;
-    }
+    if (tymin > *p_tmin) { *p_tmin = tymin; }
+    if (tymax < *p_tmax) { *p_tmax = tymax; }
 
     tzmin = (bounds[r.sign.z].z - r.orig.z) * r.invdir.z;
     tzmax = (bounds[1 - r.sign.z].z - r.orig.z) * r.invdir.z;
 
     if ((*p_tmin > tzmax) || (tzmin > *p_tmax)) { return false; }
-    if (tzmin > *p_tmin) {
-        *p_tmin = tzmin;
-        *p_near = 4 + r.sign.z;
-    }
-    if (tzmax < *p_tmax) {
-        *p_tmax = tzmax;
-        *p_far  = 5 - r.sign.z;
-    }
+    if (tzmin > *p_tmin) { *p_tmin = tzmin; }
+    if (tzmax < *p_tmax) { *p_tmax = tzmax; }
     return *p_tmax > 0;
+}
+
+vec2
+next_AABB(vec3 bounds[], Ray r) {
+    vec_t tymin, tymax, tzmin, tzmax, tmin, tmax;
+
+    tmin  = (bounds[r.sign.x].x - r.orig.x) * r.invdir.x;
+    tmax  = (bounds[1 - r.sign.x].x - r.orig.x) * r.invdir.x;
+    tymin = (bounds[r.sign.y].y - r.orig.y) * r.invdir.y;
+    tymax = (bounds[1 - r.sign.y].y - r.orig.y) * r.invdir.y;
+
+    if (tymin > tmin) { tmin = tymin; }
+    if (tymax < tmax) { tmax = tymax; }
+
+    tzmin = (bounds[r.sign.z].z - r.orig.z) * r.invdir.z;
+    tzmax = (bounds[1 - r.sign.z].z - r.orig.z) * r.invdir.z;
+
+    if (tzmin > tmin) { tmin = tzmin; }
+    if (tzmax < tmax) { tmax = tzmax; }
+    return (vec2){tmin, tmax};
 }
 
 char4
@@ -264,255 +267,21 @@ rgb2hsl(color3 rgb) {
 }
 
 bool
-voxel_march2(
-    Ray    r,
-    vec4   bounds,
-    global Voxel *voxels,
-    color3 *      col,
-    bool          debug) {
-    struct {
-        union {
-            char  arr[4];
-            char4 vec;
-        } subd;
-        union {
-            vec_t arr[8];
-            vec8  vec;
-        } dists;
-        int   index;
-        int   voxel;
-        vec4  bounds;
-        vec3  orig;
-        vec_t t;
-    } state[VOXEL_DEPTH + 1];
-    vec_t tmin, tmax;
-    SIDE  near, far;
-    int   curr = 0;
-    vec3  pt, spt;
-
-    if (!hit_AABB(
-            (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
-            r,
-            &tmin,
-            &tmax,
-            &near,
-            &far)) {
-        return false;
-    }
-    // print(("------START------\n"));
-    // print2(("------START------\n"));
-    pt  = r.orig + tmin * r.dir;
-    spt = (pt - bounds.xyz) / bounds.w;
-    vec3  dists;
-    char4 subd = box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w, &dists);
-    state[0].subd.vec  = subd;
-    state[0].dists.vec = (vec8){0, dists, tmax, 0, 0, 0};
-    int i;
-    for (i = 0; i < 4; i++) {
-        if (state[0].subd.arr[i] == -1) { break; }
-    }
-    state[0].dists.arr[i] = (tmax - tmin) / bounds.w;
-
-    state[0].index  = 0;
-    state[0].voxel  = 0;
-    state[0].bounds = bounds;
-    state[0].orig   = spt;
-    state[0].t      = (tmax - tmin) / bounds.w;
-
-    float str = 1.0f;
-    float ds  = 0.96f;
-    while (curr >= 0) {
-        if (curr == VOXEL_DEPTH) {
-            curr--;
-            state[curr].index++;
-            str *= ds;
-            continue;
-        }
-        // print(("Entering %d\n", curr));
-        int index = state[curr].index; // subd element index (x, y, z, w)
-        if (index > 3) {
-            // print((" ALL INTERSECTIONS CHECKED, BACKING UP...\n"));
-            curr--;
-            state[curr].index++;
-            str *= ds;
-            continue;
-        }
-        int vi = state[curr].voxel;           // voxels array index
-        int ci = state[curr].subd.arr[index]; // child index (0-7) or -1
-        if (ci == -1) {
-            // print((" ALL INTERSECTIONS CHECKED, BACKING UP...\n"));
-            curr--;
-            state[curr].index++;
-            str *= ds;
-            continue;
-        }
-        // print((" Node %d is", vi));
-        // print((" Subd is "));
-        // print(("%v4" PVEC "i\n", state[curr].subd.vec));
-        /*print(
-            (" %d %d %d %d\n",
-             state[curr].subd.arr[0],
-             state[curr].subd.arr[1],
-             state[curr].subd.arr[2],
-             state[curr].subd.arr[3]));*/
-        // print((" Index is %d (%d)\n", index, state[curr].subd.arr[index]));
-
-        int nextv = 0;
-        /*
-        dnextv = voxels[vi].internal.children[ci];
-        if (nextv == 0) {
-            // print((" CURRENT CHILD IS EMPTY, BACKING UP...\n"));
-            state[curr].index++;
-            str *= ds;
-            continue;
-        }
-        // print((" Next child is %d\n", nextv));
-        if (voxels[nextv].type == LEAF) {
-            // print((" Next child is leaf, DONE\n"));
-            *col = voxels[nextv].leaf.color.xyz * str;
-            return true;
-        }
-         */
-
-        bounds = state[curr].bounds;
-        bounds.w /= 2;
-        bounds.xyz += corner[ci].xyz * bounds.w;
-        if (!hit_AABB(
-                (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
-                r,
-                &tmin,
-                &tmax,
-                &near,
-                &far)) {
-            return false;
-        }
-        vec3 pt2  = r.orig + tmin * r.dir;
-        vec3 spt2 = (pt2 - bounds.xyz) / bounds.w;
-        // print2((" spt: "));
-        // print2(("%v3" PVEC "f\n", spt2));
-
-        state[curr + 1].orig = state[curr].orig;
-        // print2((" dists: "));
-        // print2(("%v5" PVEC "f\n", state[curr].dists.vec));
-        state[curr + 1].orig += state[curr].dists.arr[index] * r.dir;
-        state[curr + 1].orig -= corner[ci].xyz / 2;
-        state[curr + 1].orig *= 2;
-        print2((" org: "));
-        print2(("%v3" PVEC "f\n", state[curr + 1].orig));
-        spt = state[curr + 1].orig;
-
-        state[curr + 1].t = 2 * (state[curr].dists.arr[index + 1] -
-                                 state[curr].dists.arr[index]);
-        print2((" t: %f\n", (tmax - tmin) / bounds.w));
-        print2((" s: %f\n", state[curr + 1].t));
-
-        vec_t err = fabs(((tmax - tmin) / bounds.w) - (state[curr + 1].t));
-        if (err > 0.0001) {
-            print2((" err: %f\n", err));
-            *col = new_color(1, 0, 0);
-            if (state[curr + 1].t != -1) { *col = new_color(0, 1, 0); }
-            return true;
-        }
-        state[curr + 1].t = (tmax - tmin) / bounds.w;
-
-        state[curr + 1].subd.vec =
-            box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w, &dists);
-        state[curr + 1].dists.vec =
-            (vec8){0, dists, state[curr].t * 2, 0, 0, 0};
-        for (int i = 0; i < 4; i++) {
-            if (state[curr + 1].subd.arr[i] == -1) {
-                state[curr + 1].dists.arr[i] = state[curr].t * 2;
-                break;
-            }
-        }
-        state[curr + 1].index  = 0;
-        state[curr + 1].voxel  = nextv;
-        state[curr + 1].bounds = bounds;
-        curr++;
-    }
-
-    *col = str;
-    return true;
-}
-
-bool
-voxel_march(
-    Ray          r,
-    vec4         bounds,
-    unsigned int index,
-    global Voxel *voxels,
-    int           depth,
-    color3 *      col,
-    bool          debug) {
-    vec_t tmin, tmax;
-    SIDE  near, far;
-    union {
-        char  arr[4];
-        char4 vec;
-    } subd;
-    if (hit_AABB(
-            (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
-            r,
-            &tmin,
-            &tmax,
-            &near,
-            &far)) {
-        if (voxels[index].type == LEAF) {
-            *col = voxels[index].leaf.color.xyz;
-            return true;
-        }
-        vec3 pt  = r.orig + tmin * r.dir;
-        vec3 spt = (pt - bounds.xyz) / bounds.w;
-        vec3 dists;
-        subd.vec = box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w, &dists);
-        for (int i = 0; i < 4; i++) {
-            if (subd.arr[i] == -1) { break; }
-            int next_index = voxels[index].internal.children[subd.arr[i]];
-            if (next_index == 0) { continue; }
-            vec4 newbounds = (vec4){
-                bounds.xyz + corner[subd.arr[i]].xyz * bounds.w / 2,
-                bounds.w / 2};
-            if (voxel_march(
-                    r,
-                    newbounds,
-                    next_index,
-                    voxels,
-                    depth - 1,
-                    col,
-                    debug)) {
-                return true;
-            }
-        }
-        return false;
-    }
-    return false;
-}
-
-bool
-voxel_march3(
-    Ray    r,
-    vec4   bounds,
-    global Voxel *voxels,
-    color3 *      col,
-    bool          debug) {
+voxel_march(Ray r, vec4 bounds, global Voxel *voxels, color3 *col, bool debug) {
     struct {
         vec4  bounds;
         char4 subd;
-        vec4  dists;
+        vec3  dists;
         uint  voxel_index;
         uchar iter;
     } stack[VOXEL_DEPTH + 1];
     int   stack_index = 0;
     vec_t tmin, tmax;
-    SIDE  near, far;
-
     if (!hit_AABB(
             (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
             r,
             &tmin,
-            &tmax,
-            &near,
-            &far)) {
+            &tmax)) {
         return false;
     }
     vec3 pt  = r.orig + tmin * r.dir;
@@ -523,8 +292,9 @@ voxel_march3(
     stack[0].voxel_index = 0;
     stack[0].bounds      = bounds;
     stack[0].iter        = 0;
-
+    int count            = 0;
     do {
+        count++;
         if (stack_index > VOXEL_DEPTH) {
             *col = new_color(1, 0, 0);
             return true;
@@ -541,7 +311,13 @@ voxel_march3(
 
         uint voxel_index = stack[stack_index].voxel_index;
         if (voxels[voxel_index].type == LEAF) {
-            *col = voxels[voxel_index].leaf.color.xyz;
+            *col  = voxels[voxel_index].leaf.color.xyz;
+            int G = count % 256;
+            int R = count / 256 % 256;
+            R     = (256 - R) % 256;
+            int B = count / 256 / 256 % 256;
+            B     = (256 - B) % 256;
+            *col  = new_color(R / 255.0, G / 255.0, B / 255.0);
             return true;
         }
 
@@ -561,11 +337,8 @@ voxel_march3(
                 (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
                 r,
                 &tmin,
-                &tmax,
-                &near,
-                &far)) {
-            *col = new_color(0, 0, 1);
-            return true;
+                &tmax)) {
+            continue;
         }
         pt                          = r.orig + tmin * r.dir;
         spt                         = (pt - bounds.xyz) / bounds.w;
@@ -584,8 +357,7 @@ color3
 trace_ray(Ray r, global Voxel *voxels, bool debug) {
     vec4   bounds = {0, 0, 0, 1 << VOXEL_DEPTH};
     color3 col    = convert_color((r.dir + 1) / 2);
-    // voxel_march(r, bounds, 0, voxels, VOXEL_DEPTH, &col, debug);
-    voxel_march3(r, bounds, voxels, &col, debug);
+    voxel_march(r, bounds, voxels, &col, debug);
     if (debug) {
         color3 hsl = rgb2hsl(col);
         hsl.x      = fmod(hsl.x + 0.5f, 1.0f);
@@ -616,8 +388,6 @@ render(write_only image2d_t image, global vec4 cam[4], global Voxel *voxels) {
             new_vec3(x_coord - (vec_t)resX / 2, y_coord - (vec_t)resY / 2, 1));
     const vec3 dir = normalize((fcp - ncp).xyz);
     Ray        r   = new_Ray(origin, dir);
-    write_imagef(
-        image,
-        (int2){x_coord, y_coord},
-        (color4){trace_ray(r, voxels, debug), 1});
+    color3     col = trace_ray(r, voxels, debug);
+    write_imagef(image, (int2){x_coord, y_coord}, (color4){col, 1});
 }

@@ -234,10 +234,10 @@ StartGameLoop(void) {
     Vector3 up, right, forward;
     FILE *  save;
 
-    if ((save = fopen("save", "rb")) != NULL) {
-        fread(&State, sizeof(State), 1, save);
-        fclose(save);
-    }
+    // if ((save = fopen("save", "rb")) != NULL) {
+    //    fread(&State, sizeof(State), 1, save);
+    //    fclose(save);
+    //}
     while (GLRender()) {
         speed = GameProperties.movementSpeed;
         if (State.moveKey.sprint) { speed *= GameProperties.sprintModifier; }
