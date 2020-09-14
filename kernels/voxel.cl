@@ -11,7 +11,7 @@
 #    define PVEC      ""
 #endif
 
-#define VOXEL_DEPTH 10u
+#define VOXEL_DEPTH 9u
 
 #define CONCAT2(a, b) a##b
 #define CONCAT(a, b)  CONCAT2(a, b)
@@ -208,6 +208,9 @@ box_subdivs(vec3 spt, vec3 invdir, vec_t dt, vec3 *pdists) {
     res.y    = opposite[res.x][crosses.x];
     res.z    = opposite[res.y][crosses.y];
     res.w    = opposite[res.z][crosses.z];
+    if (res.w == 0) (*pdists).z = -1;
+    if (res.z == 0) (*pdists).y = -1;
+    if (res.y == 0) (*pdists).x = -1;
     return res - (char4)1;
 }
 
@@ -266,33 +269,48 @@ rgb2hsl(color3 rgb) {
     return new_color(h, s, l);
 }
 
+void
+print_indent(int depth) {
+    for (int i = 0; i < depth; i++) { printf("| "); }
+}
+
 bool
 voxel_march(Ray r, vec4 bounds, global Voxel *voxels, color3 *col, bool debug) {
     struct {
         vec4  bounds;
         char4 subd;
-        vec3  dists;
+        vec4  dists;
         uint  voxel_index;
         uchar iter;
+        vec_t dt;
+        vec3  spt;
     } stack[VOXEL_DEPTH + 1];
-    int   stack_index = 0;
-    vec_t tmin, tmax;
-    if (!hit_AABB(
-            (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
-            r,
-            &tmin,
-            &tmax)) {
-        return false;
+    int  stack_index = 0;
+    int  count       = 0;
+    vec3 dists;
+
+    {
+        vec_t tmin, tmax;
+        if (!hit_AABB(
+                (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
+                r,
+                &tmin,
+                &tmax)) {
+            return false;
+        }
+        vec3 pt      = r.orig + tmin * r.dir;
+        stack[0].spt = (pt - bounds.xyz) / bounds.w;
+        vec_t dt     = (tmax - tmin) / bounds.w;
+
+        stack[0].subd        = box_subdivs(stack[0].spt, r.invdir, dt, &dists);
+        stack[0].dists       = (vec4){0, dists};
+        stack[0].voxel_index = 0;
+        stack[0].bounds      = bounds;
+        stack[0].iter        = 0;
+        stack[0].dt          = dt;
+        if (tmin < 0) { return false; }
     }
-    vec3 pt  = r.orig + tmin * r.dir;
-    vec3 spt = (pt - bounds.xyz) / bounds.w;
-    vec4 dists;
-    stack[0].subd =
-        box_subdivs(spt, r.invdir, (tmax - tmin) / bounds.w, &stack[0].dists);
-    stack[0].voxel_index = 0;
-    stack[0].bounds      = bounds;
-    stack[0].iter        = 0;
-    int count            = 0;
+
     do {
         count++;
         if (stack_index > VOXEL_DEPTH) {
@@ -303,6 +321,10 @@ voxel_march(Ray r, vec4 bounds, global Voxel *voxels, color3 *col, bool debug) {
         char child_index        = stack[stack_index].subd.x;
         stack[stack_index].subd = stack[stack_index].subd.yzwx;
 
+        stack[stack_index + 1].dt =
+            2 * (stack[stack_index].dists.y - stack[stack_index].dists.x);
+        stack[stack_index].dists = stack[stack_index].dists.yzwx;
+
         if (stack[stack_index].iter == 4 || child_index == -1) {
             stack_index--;
             continue;
@@ -311,13 +333,13 @@ voxel_march(Ray r, vec4 bounds, global Voxel *voxels, color3 *col, bool debug) {
 
         uint voxel_index = stack[stack_index].voxel_index;
         if (voxels[voxel_index].type == LEAF) {
-            *col  = voxels[voxel_index].leaf.color.xyz;
-            int G = count % 256;
-            int R = count / 256 % 256;
-            R     = (256 - R) % 256;
-            int B = count / 256 / 256 % 256;
-            B     = (256 - B) % 256;
-            *col  = new_color(R / 255.0, G / 255.0, B / 255.0);
+            *col = voxels[voxel_index].leaf.color.xyz;
+            // int G = count % 256;
+            // int R = count / 256 % 256;
+            // R     = (256 - R) % 256;
+            // int B = count / 256 / 256 % 256;
+            // B     = (256 - B) % 256;
+            //*col  = new_color(B / 255.0, G / 255.0, R / 255.0);
             return true;
         }
 
@@ -333,20 +355,22 @@ voxel_march(Ray r, vec4 bounds, global Voxel *voxels, color3 *col, bool debug) {
         stack[stack_index + 1].bounds      = bounds;
         stack[stack_index + 1].iter        = 0;
 
-        if (!hit_AABB(
-                (vec3[]){bounds.xyz, bounds.xyz + bounds.w},
-                r,
-                &tmin,
-                &tmax)) {
-            continue;
+        stack[stack_index + 1].spt =
+            2.0f *
+                (stack[stack_index].spt + r.dir * stack[stack_index].dists.w) -
+            corner[child_index].xyz;
+
+        if (stack[stack_index].subd.x == -1 || stack[stack_index].iter == 4) {
+            stack[stack_index + 1].dt =
+                2 * (stack[stack_index].dt - stack[stack_index].dists.w);
         }
-        pt                          = r.orig + tmin * r.dir;
-        spt                         = (pt - bounds.xyz) / bounds.w;
+
         stack[stack_index + 1].subd = box_subdivs(
-            spt,
+            stack[stack_index + 1].spt,
             r.invdir,
-            (tmax - tmin) / bounds.w,
-            &stack[stack_index + 1].dists);
+            stack[stack_index + 1].dt,
+            &dists);
+        stack[stack_index + 1].dists = (vec4){0, dists};
 
         stack_index++;
     } while (stack_index >= 0);
@@ -361,7 +385,8 @@ trace_ray(Ray r, global Voxel *voxels, bool debug) {
     if (debug) {
         color3 hsl = rgb2hsl(col);
         hsl.x      = fmod(hsl.x + 0.5f, 1.0f);
-        hsl.z      = fmod(hsl.z + 0.5f, 1.0f);
+        hsl.y      = 1.0;
+        hsl.z      = 1.0 - hsl.z;
         color3 rgb = hsl2rgb(hsl);
         return hsl2rgb(hsl);
     }
@@ -374,9 +399,10 @@ render(write_only image2d_t image, global vec4 cam[4], global Voxel *voxels) {
     const uint y_coord = get_global_id(1);
     const uint resX    = get_global_size(0);
     const uint resY    = get_global_size(1);
-    bool       debug   = x_coord == resX / 2 && y_coord == resY / 2; /*
-                  pow((float)x_coord - resX / 2, 2) + pow((float)y_coord - resY / 2, 2)
-                  <=         16.0f;*/
+    bool       debug   = x_coord == resX / 2 && y_coord == resY / 2;
+    //    pow((float)x_coord - resX / 2, 2) + pow((float)y_coord - resY / 2,
+    //                                             2) <=
+    //    4.0f;
     const vec3 origin =
         new_vec3(cam[0].z / cam[3].z, cam[1].z / cam[3].z, cam[2].z / cam[3].z);
 
