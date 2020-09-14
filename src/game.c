@@ -283,12 +283,8 @@ GameInit(const char *kernel_filename, const char *kernel_name, CLArg *args) {
     GLGetWindowSize(&prevScreenSize[0], &prevScreenSize[1]);
     GLGetMousePos(&State.mousePos.x, &State.mousePos.y);
     State.camVel = Vector3_zero;
-    State.camera = (Camera){
-        0.1f,
-        1,
-        M_PI / 3,
-        Vector3((1u << VOXEL_DEPTH) / 2.01, (1u << VOXEL_DEPTH) / 2.01, -40),
-        Vector3_forward};
+    State.camera =
+        (Camera){0.1f, 1, M_PI / 3, Vector3(0, 0, -2), Vector3_forward};
     AddPhysObject(&State.camera.Position, &State.camVel);
     vec_objects = new_list(0);
 }

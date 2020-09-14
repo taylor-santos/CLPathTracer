@@ -379,7 +379,7 @@ voxel_march(Ray r, vec4 bounds, global Voxel *voxels, color3 *col, bool debug) {
 
 color3
 trace_ray(Ray r, global Voxel *voxels, bool debug) {
-    vec4   bounds = {0, 0, 0, 1 << VOXEL_DEPTH};
+    vec4   bounds = {0, 0, 0, 10.0f};
     color3 col    = convert_color((r.dir + 1) / 2);
     voxel_march(r, bounds, voxels, &col, debug);
     if (debug) {
